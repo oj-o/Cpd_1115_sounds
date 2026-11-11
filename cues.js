@@ -4,21 +4,34 @@ window.CUES = [
  {
   "id": "0",
   "scene": "프리쇼",
-  "title": "하우스 음악",
-  "timing": "관객 입장 중 (공연 전)",
+  "title": "관객 입장 음악 (약 5분)",
+  "timing": "관객 입장 시간 · 조명 프리셋",
   "loop": true,
-  "vol": 0.55,
+  "vol": 0.6,
+  "note": "저승관리청 모음곡: 로비 왈츠 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호",
   "type": "audio",
-  "src": "audio/00_house.wav",
-  "dur": 20.0
+  "src": "audio/00_house_suite.mp3",
+  "dur": 301.75
  },
  {
   "id": "1",
   "scene": "1장",
-  "title": "음악1 · 밝은 음악",
-  "timing": "지문 '밝은 조명. 음악1'",
-  "fadeOthers": 2.5,
-  "note": "음악 종류: 경쾌한 오피스 코미디(우쿨렐레·글로켄슈필·휘슬, 132BPM). \"여러분!!!\" 직전에 볼륨을 낮춤",
+  "title": "음악1 · 기괴한 저승 오피스",
+  "timing": "입장 음악 F.O · 조명 fade out → 직원들 등장, 서류 정리 (주인공 제외)",
+  "loop": true,
+  "fadeOthers": 4,
+  "note": "오르골·하프시코드·테레민 왈츠 + 사무실 소리. 반복되므로 다음 큐로 넘김",
+  "type": "audio",
+  "src": "audio/01_underworld_office.wav",
+  "dur": 40.0
+ },
+ {
+  "id": "1B",
+  "scene": "1장",
+  "title": "주인공 센터 · 밝은 음악",
+  "timing": "주인공이 센터로 나올 때 (\"여러분!!!\" 직전)",
+  "fadeOthers": 1.5,
+  "note": "기괴한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤",
   "type": "audio",
   "src": "audio/01_opening.mp3",
   "dur": 17.93
@@ -30,6 +43,8 @@ window.CUES = [
   "timing": "지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)",
   "loop": true,
   "vol": 0.8,
+  "fadeOthers": 1,
+  "note": "음악 off 후 벨소리 (대본 메모)",
   "type": "audio",
   "src": "audio/03_ring.wav",
   "dur": 5.0
@@ -41,7 +56,7 @@ window.CUES = [
   "timing": "주인공 \"여보세요?\" 직전 (받는 순간)",
   "type": "stop",
   "fade": 0.1,
-  "note": "이어지는 인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"
+  "note": "이어지는 인사담당자 (전화) 대사는 녹음 파일 또는 무대 뒤 마이크 + 전화 음색 EQ"
  },
  {
   "id": "3",
@@ -143,14 +158,14 @@ window.CUES = [
  {
   "id": "11",
   "scene": "공연 후",
-  "title": "하우스 음악",
+  "title": "퇴장 음악",
   "timing": "커튼콜 인사 후 하우스 조명",
   "loop": true,
-  "vol": 0.55,
+  "vol": 0.6,
   "fadeOthers": 4,
   "fadeIn": 3,
   "type": "audio",
-  "src": "audio/00_house.wav",
-  "dur": 20.0
+  "src": "audio/00_house_suite.mp3",
+  "dur": 301.75
  }
 ];

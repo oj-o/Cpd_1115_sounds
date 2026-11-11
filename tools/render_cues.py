@@ -501,16 +501,227 @@ def ars():
     s.n(0, 0, .5, 84, 110); s.n(1, 0, .5, 96, 60); s.n(0, .45, 1, 79, 105); s.n(1, .45, 1, 91, 55)
     return s.render(1.0)
 
+# ───────────────────────── 2026.11.11 추가: 저승 오피스 · 관객입장 모음곡 ─────────────────────────
+def theremin(notes, bpm, total_beats, vib=0.007, glide=0.06, level=0.32):
+    """테레민 느낌의 사인 리드. notes = [(박, 길이, MIDI), ...]"""
+    spb = 60.0 / bpm; n = int(total_beats * spb * SR) + SR
+    target = np.zeros(n); amp = np.zeros(n)
+    for b, d, p in notes:
+        i0, i1 = int(b * spb * SR), int((b + d) * spb * SR)
+        target[i0:i1] = 440 * 2 ** ((p - 69) / 12); amp[i0:i1] = 1
+    # 쉼표 구간은 앞 음 높이를 유지해 미끄러지듯 이어지게
+    last = 0
+    for i in range(n):
+        if target[i] == 0: target[i] = last
+        else: last = target[i]
+    a = np.exp(-1 / (glide * SR))
+    f = signal.lfilter([1 - a], [1, -a], target, zi=[target[0] * a])[0]
+    t = np.arange(n) / SR
+    f *= 1 + vib * np.sin(2 * np.pi * 5.6 * t + 0.3 * np.sin(2 * np.pi * 0.4 * t))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    ea = np.exp(-1 / (0.05 * SR))
+    env = signal.lfilter([1 - ea], [1, -ea], amp)
+    m = (np.sin(ph) + 0.22 * np.sin(2 * ph) + 0.07 * np.sin(3 * ph)) * env * level
+    return reverb(st(m.astype(np.float32), 0.1), 2.2, 0.32)
+
+def paper(d=0.5, v=0.3):
+    t = T(d); e = np.exp(-((t - d * 0.4) / (d * 0.25)) ** 2)
+    m = filt(noise(d), [1500, 7000], 'band', 2) * e * (0.6 + 0.4 * np.abs(filt(noise(d), 30)))
+    return st(m * v, RNG.uniform(-.5, .5))
+
+def bell_ding(f=2600, v=0.12):
+    return st(coin(f) * v * 5, 0.3)
+
+def office_foley(dur, beat_sec, density=1.0):
+    """먼 사무실 소리: 종이, 타자, 도장, 타자기 종"""
+    parts, t = [], 1.0
+    while t < dur - 2:
+        k = RNG.random()
+        if k < 0.35: parts.append((t, paper(RNG.uniform(.3, .7), 0.18)))
+        elif k < 0.6: parts.append((t, typing(RNG.uniform(.6, 1.4)) * 0.35))
+        elif k < 0.78: parts.append((t, stamp() * 0.22))
+        else: parts.append((t, bell_ding(RNG.uniform(2300, 2900), 0.08)))
+        t += beat_sec * RNG.integers(3, 8) / density
+    return mix(dur, parts)
+
+def underworld_office():
+    """1장 오프닝: 직원들이 서류를 정리하는 동안 흐르는 기괴한 저승 오피스 왈츠 (D단조 3/4, 반복용 24마디)"""
+    bpm = 108; B = 3; bars = 24
+    s = Score(bpm).prog(0, 6, 92, 44, 55).prog(1, 45, 105, 64, 50).prog(2, 10, 80, 84, 70) \
+                  .prog(3, 71, 80, 70, 55).prog(4, 49, 55, 64, 75).prog(9, 0, 80)
+    prog = [  # (베이스, 화음)
+        (38, [62, 65, 69]), (37, [62, 65, 69]), (36, [62, 65, 69]), (35, [62, 65, 67]),
+        (34, [62, 67, 70]), (33, [61, 64, 67]), (38, [62, 65, 69]), (33, [61, 64, 67]),
+        (38, [62, 65, 69]), (37, [62, 65, 69]), (36, [62, 65, 69]), (35, [62, 65, 67]),
+        (34, [62, 67, 70]), (33, [61, 64, 67]), (38, [62, 65, 69]), (33, [61, 64, 67]),
+        (34, [62, 65, 70]), (31, [62, 67, 70]), (39, [63, 67, 70]), (33, [61, 64, 67]),
+        (38, [62, 65, 69]), (31, [62, 67, 70]), (33, [61, 64, 67]), (38, [62, 65, 69]),
+    ]
+    for i, (bass, ch) in enumerate(prog):
+        b0 = i * B
+        s.n(1, b0, 0.5, bass, 100)                       # 피치카토 베이스 (쿵)
+        s.n(0, b0 + 1, 0.4, ch, 88 if i < 8 else 72); s.n(0, b0 + 2, 0.4, ch, 80 if i < 8 else 66)   # 하프시코드 (짝짝)
+        s.n(4, b0, 3, [p - 12 for p in ch], 52 if i < 8 else 40)  # 현악 패드
+        s.n(9, b0, .2, 76, 55); s.n(9, b0 + 1, .2, 77, 40); s.n(9, b0 + 2, .2, 77, 40)  # 시계 같은 우드블록
+    box = [74, 81, 77, 73, 81, 76]   # 오르골 모티프
+    for i in range(0, 8):
+        b0 = i * B
+        for k in range(3): s.n(2, b0 + k, 0.9, box[(i * 3 + k) % 6] + (12 if i % 4 == 3 else 0), 70)
+    for i in range(16, 24):
+        b0 = i * B
+        s.n(2, b0 + 2.5, 0.5, prog[i][1][2] + 12, 55)
+    # 바순(클라리넷) 대선율: 9~16마디 아래쪽에서 기어가듯
+    crawl = [50, 49, 48, 47, 46, 45, 50, 45, 50, 49, 48, 47, 46, 45, 50, 49]
+    s.seq(3, [(i * 1.5, 1.4, p + 12) for i, p in enumerate(crawl)], 92)      # 1~8마디: 클라리넷이 앞에서 기어감
+    s.seq(3, [(24 + i * 1.5, 1.4, p) for i, p in enumerate(crawl)], 70)
+    mel = [(24, 2, 69), (26, 1, 74), (27, 2, 77), (29, 1, 76), (30, 3, 75), (33, 2, 74), (35, 1, 71),
+           (36, 1, 74), (37, 1, 73), (38, 1, 70), (39, 3, 69), (42, 1, 74), (43, 1, 77), (44, 1, 81), (45, 1.5, 80), (46.5, 1.5, 81),
+           (48, 2, 82), (50, 1, 81), (51, 2, 79), (53, 1, 77), (54, 2, 75), (56, 1, 74), (57, 3, 73),
+           (60, 1, 74), (61, 1, 77), (62, 1, 81), (63, 2, 82), (65, 1, 79), (66, 1, 76), (67, 1, 79), (68, 1, 73), (69, 3, 74)]
+    x = s.render(4)
+    loop = bars * B * 60 / bpm
+    th = theremin(mel, bpm, bars * B, level=0.11)
+    fol = office_foley(loop + 4, 60 / bpm, 0.8) * 0.9
+    y = mix(len(x) / SR, [(0, x), (0, th), (0, fol)])
+    return loop_wrap(y, loop)
+
+def _waltz_lobby(bars=32, bpm=84, key=0):
+    """모음곡 1·6: 저승관리청 로비 — 오르골·첼레스타 느린 왈츠"""
+    s = Score(bpm).prog(0, 10, 85, 70, 80).prog(1, 8, 70, 54, 80).prog(2, 45, 80).prog(3, 49, 60, 64, 85).prog(9, 0, 50)
+    ch = [(38, [62, 65, 69]), (34, [62, 65, 70]), (31, [62, 67, 70]), (33, [61, 64, 69]),
+          (38, [62, 65, 69]), (36, [60, 64, 69]), (34, [62, 65, 70]), (33, [61, 64, 67])]
+    mel = [74, 72, 70, 69, 77, 76, 74, 73]
+    for i in range(bars):
+        bass, c = ch[i % 8]; b0 = i * 3
+        s.n(2, b0, .6, bass + key, 85)
+        for k, p in enumerate(c): s.n(1, b0 + 1 + k * 0.5, .8, p + 12 + key, 55)
+        s.n(0, b0, 2, mel[i % 8] + (12 if (i // 8) % 2 else 0) + key, 75)
+        s.n(0, b0 + 2, 1, mel[(i + 1) % 8] + 7 + key, 55)
+        if i >= 8: s.n(3, b0, 3, [p + key for p in c], 50)
+        s.n(9, b0, .2, 76, 35)
+    return s.render(4)
+
+def _bureau_march(bars=24, bpm=112):
+    """모음곡 2: 행정 업무 — 바순·피치카토 관료 행진, 타자기와 도장"""
+    s = Score(bpm).prog(0, 70, 95, 50, 40).prog(1, 45, 105, 64, 40).prog(2, 71, 85, 78, 40).prog(3, 6, 70, 40, 40).prog(9, 0, 85)
+    ch = [(43, [55, 58, 62]), (43, [55, 58, 62]), (48, [55, 60, 63]), (50, [54, 57, 60]),
+          (43, [55, 58, 62]), (39, [55, 58, 63]), (38, [54, 57, 60]), (43, [55, 58, 62])]
+    mel = [(0, .5, 67), (.5, .5, 70), (1, .5, 69), (1.5, .5, 67), (2, 1, 66), (3, 1, 62),
+           (4, .5, 63), (4.5, .5, 67), (5, .5, 66), (5.5, .5, 63), (6, 1, 62), (7, 1, 55),
+           (8, .5, 67), (8.5, .5, 70), (9, .5, 74), (9.5, .5, 72), (10, .5, 70), (10.5, .5, 69), (11, 1, 67),
+           (12, .5, 63), (12.5, .5, 62), (13, .5, 60), (13.5, .5, 58), (14, 1, 57), (15, 1, 55)]
+    for rep in range(bars // 8):
+        o = rep * 16
+        s.seq(0, mel, 92, o, -12 if rep == 0 else 0)
+        if rep >= 1: s.seq(2, mel, 75, o + 0.02, 12 if rep == 2 else 0)
+        for i, (bass, c) in enumerate(ch):
+            b0 = o + i * 2
+            s.n(1, b0, .4, bass - 12, 100); s.n(1, b0 + 1, .4, bass - 5, 85)
+            s.n(3, b0 + .5, .3, c, 60); s.n(3, b0 + 1.5, .3, c, 55)
+            s.n(9, b0, .2, 76, 60); s.n(9, b0 + 1, .2, 77, 50)
+            if rep == 2: s.n(9, b0 + .5, .1, 75, 40); s.n(9, b0 + 1.5, .1, 75, 40)
+    s.n(1, bars * 2, 1, 31, 110); s.n(0, bars * 2, 1, 43, 100)
+    x = s.render(3)
+    beat = 60 / bpm; parts = [(0, x)]
+    for k in range(bars // 2):                      # 2마디마다 도장, 사이사이 타자
+        parts.append((k * 4 * beat + 3 * beat, stamp() * 0.35))
+        parts.append((k * 4 * beat + 0.5 * beat, typing(1.2 * beat) * 0.45))
+    parts.append((bars * 2 * beat, bell_ding(2700, 0.15)))
+    return mix(len(x) / SR, parts)
+
+def _subway(dur=48):
+    """모음곡 3: 삼도천 지하철 — 낮은 드론, 철길 리듬, '4와 4분의 4' 안내 차임"""
+    bpm = 96; beat = 60 / bpm
+    s = Score(bpm).prog(0, 48, 80, 40, 80).prog(1, 42, 85, 88, 70).prog(2, 11, 95, 64, 80).prog(3, 89, 70, 64, 90)
+    beats = int(dur / beat)
+    for b0, c in zip(range(0, beats, 8), [[38, 45, 50], [37, 44, 49], [35, 42, 47], [37, 44, 49]] * 4):
+        s.n(0, b0, 8, c, 70); s.n(1, b0, 8, c[0] - 12, 85); s.n(3, b0, 8, [p + 24 for p in c], 45)
+    for k, b0 in enumerate(range(6, beats - 4, 16)):   # 안내 차임: 내려가는 4음 (4·4/4)
+        for i, p in enumerate([79, 75, 72, 67]): s.n(2, b0 + i * .75, 1.5, p - (k % 2) * 2, 85)
+    s.ramp(0, 0, 8, 20, 120); s.ramp(1, 0, 8, 20, 120); s.ramp(0, beats - 8, beats, 120, 10); s.ramp(1, beats - 8, beats, 120, 10)
+    x = s.render(3)
+    parts = [(0, x)]
+    clack = lambda v: st(filt(noise(0.09), [120, 900], 'band', 2) * np.exp(-T(0.09) * 40) * v)
+    t = 1.0
+    while t < dur - 3:                              # 따-닥 따-닥 철길
+        for off, v in ((0, .7), (.22 * beat * 4 / 4, .5), (2 * beat, .7), (2.22 * beat, .5)): parts.append((t + off, clack(v)))
+        t += 4 * beat
+    rumble = np.stack([filt(noise(dur), 140) for _ in range(2)], 1) * 0.35
+    env = np.minimum(1, T(dur) / 6) * np.minimum(1, (dur - T(dur)) / 6)
+    parts.append((0, (rumble * env[:, None]).astype(np.float32)))
+    return mix(len(x) / SR, parts)
+
+def _reaper_trip(reps=3):
+    """모음곡 5: 저승사자 출장 — 능청스러운 스윙"""
+    s = Score(126).prog(0, 71, 100, 54, 50).prog(1, 32, 110, 64, 30).prog(2, 66, 80, 76, 50).prog(9, 0, 85)
+    sw = lambda b: b + (0.08 if (b * 2) % 2 == 1 else 0)
+    bass = [40, 43, 45, 46, 47, 45, 43, 42, 40, 43, 45, 47, 52, 50, 47, 43]
+    mel = [(0, 1, 64), (1.5, .5, 67), (2, .5, 69), (2.5, 1.5, 70), (4, .5, 71), (4.5, .5, 70), (5, .5, 69), (5.5, .5, 67), (6, 2, 64),
+           (8, 1, 64), (9.5, .5, 67), (10, .5, 69), (10.5, 1.5, 70), (12, .5, 76), (12.5, .5, 75), (13, 1, 71), (14, 1.5, 64)]
+    for r in range(reps):
+        o = r * 16
+        s.seq(1, [(o + i, .9, p) for i, p in enumerate(bass)], 105)
+        s.seq(0 if r != 1 else 2, [(sw(b) + o, d, p) for b, d, p in mel], 95 if r != 1 else 85)
+        for b in range(16):
+            s.n(9, o + b, .3, 51, 65); s.n(9, o + b + 0.67, .2, 51, 40)
+            if b % 2 == 1: s.n(9, o + b, .2, 39, 55)
+    s.n(1, reps * 16, 1.5, 40, 110); s.n(9, reps * 16, 2, 49, 80)
+    x = s.render(2)
+    return mix(len(x) / SR + .5, [(0, x), (60 / 126 * (reps * 16 - .5), coins(8))])
+
+def _reincarnation(bars=24):
+    """모음곡 6: 환생 대기번호 — 로비 왈츠 재현, 번호표 띵동, 조용히 마무리"""
+    x = _waltz_lobby(bars, 80, 0)
+    s = Score(60).prog(0, 11, 105, 64, 70).prog(1, 8, 70, 64, 70)
+    s.n(0, 0, 1, 84, 100); s.n(1, 0, 1, 96, 55); s.n(0, .5, 1.5, 79, 95); s.n(1, .5, 1.5, 91, 50)
+    dd = s.render(1.5) * 0.8
+    sp = 3 * 60 / 80
+    return mix(len(x) / SR, [(0, x), (sp * 8 - 0.3, dd), (sp * 16 - 0.3, dd)])
+
+def _xfade(chunks, fade=2.5):
+    out = chunks[0]
+    for c in chunks[1:]:
+        n = int(fade * SR); n = min(n, len(out), len(c))
+        w = np.linspace(0, 1, n)[:, None]
+        mid = out[-n:] * np.cos(w * np.pi / 2) + c[:n] * np.sin(w * np.pi / 2)
+        out = np.vstack([out[:-n], mid, c[n:]])
+    return out.astype(np.float32)
+
+def house_suite():
+    """관객 입장 음악 약 5분: 저승관리청의 여러 얼굴
+    로비 왈츠 → 행정 업무 행진 → 삼도천 지하철 → 살아 있는 동안(피아노) → 저승사자 출장(스윙) → 환생 대기번호(왈츠 재현)"""
+    def norm(x, db=-22):
+        r = np.sqrt(np.mean(x.astype(np.float64) ** 2)) + 1e-9
+        return (x * (10 ** (db / 20) / r)).astype(np.float32)
+    lobby = norm(_waltz_lobby(32, 84))
+    march = norm(_bureau_march(32, 112), -21)
+    sub = norm(_subway(60), -23)
+    pno = piano_theme(); pno = norm(np.vstack([pno, pno]), -23)
+    reap = norm(_reaper_trip(4), -21)
+    rein = norm(_reincarnation(24), -22)
+    def tail(x, keep=1.2):                                                   # 구간 끝 잔향 꼬리를 잘라 무음 공백 방지
+        i = np.where(np.max(np.abs(x), 1) > 10 ** (-45 / 20))[0][-1]
+        return x[:min(len(x), i + int(keep * SR))]
+    out = _xfade([tail(c) for c in (lobby, march, sub, pno, reap)] + [rein], 2.5)
+    idx = np.where(np.max(np.abs(out), 1) > 10 ** (-55 / 20))[0]          # 끝 무음 정리 (반복 시 공백 최소화)
+    out = out[:idx[-1] + int(1.5 * SR)]
+    n = int(1.0 * SR); out[-n:] *= np.linspace(1, 0, n)[:, None]
+    return out
+
 # ───────────────────────── 큐 목록 (2026.11.08 대본 형광펜 표시 기준) ─────────────────────────
 # type: audio | stop      fadeOthers: GO 시 재생 중인 다른 큐를 몇 초에 걸쳐 페이드아웃
 # 이전 34큐 버전은 git 기록(c0e548c)에 있습니다.
 CUES = [
-    dict(id="0",  scene="프리쇼", title="하우스 음악", timing="관객 입장 중 (공연 전)", file="00_house", gen=house, loop=True, vol=0.55),
-    dict(id="1",  scene="1장", title="음악1 · 밝은 음악", timing="지문 '밝은 조명. 음악1'", file="01_opening", gen=opening, fadeOthers=2.5,
-         note="음악 종류: 경쾌한 오피스 코미디(우쿨렐레·글로켄슈필·휘슬, 132BPM). \"여러분!!!\" 직전에 볼륨을 낮춤"),
-    dict(id="2",  scene="1장", title="휴대전화 벨소리 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8),
+    dict(id="0",  scene="프리쇼", title="관객 입장 음악 (약 5분)", timing="관객 입장 시간 · 조명 프리셋", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
+         note="저승관리청 모음곡: 로비 왈츠 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호"),
+    dict(id="1",  scene="1장", title="음악1 · 기괴한 저승 오피스", timing="입장 음악 F.O · 조명 fade out → 직원들 등장, 서류 정리 (주인공 제외)", file="01_underworld_office", gen=underworld_office, loop=True, fadeOthers=4,
+         note="오르골·하프시코드·테레민 왈츠 + 사무실 소리. 반복되므로 다음 큐로 넘김"),
+    dict(id="1B", scene="1장", title="주인공 센터 · 밝은 음악", timing="주인공이 센터로 나올 때 (\"여러분!!!\" 직전)", file="01_opening", gen=opening, fadeOthers=1.5,
+         note="기괴한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤"),
+    dict(id="2",  scene="1장", title="휴대전화 벨소리 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
+         note="음악 off 후 벨소리 (대본 메모)"),
     dict(id="2B", scene="1장", title="벨소리 정지", timing="주인공 \"여보세요?\" 직전 (받는 순간)", type="stop", fade=0.1,
-         note="이어지는 인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
+         note="이어지는 인사담당자 (전화) 대사는 녹음 파일 또는 무대 뒤 마이크 + 전화 음색 EQ"),
     dict(id="3",  scene="1장", title="통화 종료음", timing="지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)", file="04_hangup", gen=busy_tone),
     dict(id="4",  scene="2장", title="통화 발신음", timing="지문 '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.'", file="05_ringback", gen=ringback, loop=True, vol=0.8),
     dict(id="4B", scene="2장", title="발신음 정지", timing="팀장 \"감사팀장님 오랜만이에요.\" 직전 (연결되는 순간)", type="stop", fade=0.1),
@@ -525,16 +736,16 @@ CUES = [
          note="차임 끝나고 방송 대사: 무대 뒤 마이크 + 확성기 음색 EQ"),
     dict(id="10", scene="9장", title="밝은 음악 · 커튼콜", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain, fadeOthers=1,
          note="\"하나, 둘! 감사합니다!!!\" · 암전 뒤 인사가 끝날 때까지 이어짐 (마지막 화음은 시작 약 27초 뒤)"),
-    dict(id="11", scene="공연 후", title="하우스 음악", timing="커튼콜 인사 후 하우스 조명", file="00_house", loop=True, vol=0.55, fadeOthers=4, fadeIn=3),
+    dict(id="11", scene="공연 후", title="퇴장 음악", timing="커튼콜 인사 후 하우스 조명", file="00_house_suite", loop=True, vol=0.6, fadeOthers=4, fadeIn=3),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
-    "00_house": -22, "03_ring": -19, "04_hangup": -21, "05_ringback": -21, "06_ars": -19, "09_chime": -19,
+    "00_house_suite": -22, "01_underworld_office": -21, "03_ring": -19, "04_hangup": -21, "05_ringback": -21, "06_ars": -19, "09_chime": -19,
 }
 
 def master(x, name):
     x = x.astype(np.float64)
-    if not name.endswith(("house", "piano", "strings", "ring", "ringback")):        # 루프가 아니면 꼬리 정리
+    if not name.endswith(("house", "suite", "office", "piano", "strings", "ring", "ringback")):        # 루프가 아니면 꼬리 정리
         env = np.max(np.abs(x), 1); idx = np.where(env > 10 ** (-62 / 20))[0]
         if len(idx): x = x[:idx[-1] + int(0.05 * SR)]
         n = int(0.04 * SR); x[-n:] *= np.linspace(1, 0, n)[:, None]
@@ -552,14 +763,14 @@ def main():
         x = master(c["gen"](), c["file"])
         wav = os.path.join(OUT, c["file"] + ".wav")
         wavfile.write(wav, SR, (np.clip(x, -1, 1) * 32767).astype(np.int16))
-        if not c.get("loop"):   # 단발 큐는 MP3(320k), 루프 큐는 끊김 없는 WAV 유지
-            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-b:a', '320k', wav[:-4] + '.mp3'], check=True)
+        if not c.get("loop") or c.get("mp3"):   # 단발 큐·긴 곡은 MP3, 짧은 루프 큐는 끊김 없는 WAV 유지
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-b:a', '256k' if c.get("mp3") else '320k', wav[:-4] + '.mp3'], check=True)
             os.remove(wav)
         meta[c["file"]] = round(len(x) / SR, 2)
         print(f'{c["id"]:>4}  {c["file"]:<18} {len(x)/SR:5.1f}s')
     cues = []
     for c in CUES:
-        d = {k: v for k, v in c.items() if k != "gen"}
+        d = {k: v for k, v in c.items() if k not in ("gen", "mp3")}
         if c.get("type") != "stop":
             d["type"] = "audio"
             d["src"] = f'audio/{c["file"]}.' + ("wav" if os.path.exists(os.path.join(OUT, c["file"] + ".wav")) else "mp3")
