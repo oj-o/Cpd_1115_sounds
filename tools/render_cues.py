@@ -544,50 +544,66 @@ def office_foley(dur, beat_sec, density=1.0):
         t += beat_sec * RNG.integers(3, 8) / density
     return mix(dur, parts)
 
+def creak(d=1.4, f0=700, v=0.35):
+    """나무 문·의자 삐걱: 속도가 변하는 미세 충격열을 공명 필터로"""
+    t = T(d); rate = 25 + 90 * (0.5 + 0.5 * np.sin(2 * np.pi * RNG.uniform(.4, 1.1) * t + RNG.uniform(0, 6)))
+    ph = np.cumsum(rate) / SR; imp = np.zeros(len(t)); imp[np.where(np.diff(np.floor(ph)) > 0)[0]] = 1
+    imp *= RNG.uniform(.5, 1, len(t))
+    m = filt(imp, [f0 * 0.7, f0 * 1.6], 'band', 2) + 0.5 * filt(imp, [f0 * 2.1, f0 * 2.9], 'band', 2)
+    m *= np.minimum(1, t / 0.15) * np.minimum(1, (d - t) / 0.3)
+    return reverb(st(m * v * 6, RNG.uniform(-.7, .7)), 1.8, 0.35)
+
+def rev_swell(d=2.5, v=0.4):
+    """역재생 심벌처럼 빨려 들어가는 소리"""
+    t = T(d); m = filt(noise(d), 2500, 'high') * (t / d) ** 3 * v
+    return st(m.astype(np.float32))
+
+def whisper_wind(d):
+    return wind(d) * 0.5 + st(filt(noise(d), [2500, 6000], 'band', 2) * 0.03 * (0.5 + 0.5 * np.sin(2 * np.pi * 0.13 * T(d))))
+
 def underworld_office():
-    """1장 오프닝: 직원들이 서류를 정리하는 동안 흐르는 기괴한 저승 오피스 왈츠 (D단조 3/4, 반복용 24마디)"""
-    bpm = 108; B = 3; bars = 24
-    s = Score(bpm).prog(0, 6, 92, 44, 55).prog(1, 45, 105, 64, 50).prog(2, 10, 80, 84, 70) \
-                  .prog(3, 71, 80, 70, 55).prog(4, 49, 55, 64, 75).prog(9, 0, 80)
-    prog = [  # (베이스, 화음)
-        (38, [62, 65, 69]), (37, [62, 65, 69]), (36, [62, 65, 69]), (35, [62, 65, 67]),
-        (34, [62, 67, 70]), (33, [61, 64, 67]), (38, [62, 65, 69]), (33, [61, 64, 67]),
-        (38, [62, 65, 69]), (37, [62, 65, 69]), (36, [62, 65, 69]), (35, [62, 65, 67]),
-        (34, [62, 67, 70]), (33, [61, 64, 67]), (38, [62, 65, 69]), (33, [61, 64, 67]),
-        (34, [62, 65, 70]), (31, [62, 67, 70]), (39, [63, 67, 70]), (33, [61, 64, 67]),
-        (38, [62, 65, 69]), (31, [62, 67, 70]), (33, [61, 64, 67]), (38, [62, 65, 69]),
-    ]
-    for i, (bass, ch) in enumerate(prog):
-        b0 = i * B
-        s.n(1, b0, 0.5, bass, 100)                       # 피치카토 베이스 (쿵)
-        s.n(0, b0 + 1, 0.4, ch, 88 if i < 8 else 72); s.n(0, b0 + 2, 0.4, ch, 80 if i < 8 else 66)   # 하프시코드 (짝짝)
-        s.n(4, b0, 3, [p - 12 for p in ch], 52 if i < 8 else 40)  # 현악 패드
-        s.n(9, b0, .2, 76, 55); s.n(9, b0 + 1, .2, 77, 40); s.n(9, b0 + 2, .2, 77, 40)  # 시계 같은 우드블록
-    box = [74, 81, 77, 73, 81, 76]   # 오르골 모티프
-    for i in range(0, 8):
-        b0 = i * B
-        for k in range(3): s.n(2, b0 + k, 0.9, box[(i * 3 + k) % 6] + (12 if i % 4 == 3 else 0), 70)
-    for i in range(16, 24):
-        b0 = i * B
-        s.n(2, b0 + 2.5, 0.5, prog[i][1][2] + 12, 55)
-    # 바순(클라리넷) 대선율: 9~16마디 아래쪽에서 기어가듯
-    crawl = [50, 49, 48, 47, 46, 45, 50, 45, 50, 49, 48, 47, 46, 45, 50, 49]
-    s.seq(3, [(i * 1.5, 1.4, p + 12) for i, p in enumerate(crawl)], 92)      # 1~8마디: 클라리넷이 앞에서 기어감
-    s.seq(3, [(24 + i * 1.5, 1.4, p) for i, p in enumerate(crawl)], 70)
-    mel = [(24, 2, 69), (26, 1, 74), (27, 2, 77), (29, 1, 76), (30, 3, 75), (33, 2, 74), (35, 1, 71),
-           (36, 1, 74), (37, 1, 73), (38, 1, 70), (39, 3, 69), (42, 1, 74), (43, 1, 77), (44, 1, 81), (45, 1.5, 80), (46.5, 1.5, 81),
-           (48, 2, 82), (50, 1, 81), (51, 2, 79), (53, 1, 77), (54, 2, 75), (56, 1, 74), (57, 3, 73),
-           (60, 1, 74), (61, 1, 77), (62, 1, 81), (63, 2, 82), (65, 1, 79), (66, 1, 76), (67, 1, 79), (68, 1, 73), (69, 3, 74)]
+    """1장 오프닝: 직원들이 서류를 정리하는 동안 흐르는 스산한 저승 오피스 (공포 톤, D단조 3/4, 반복용 16마디)
+    낮은 트레몰로 현 클러스터 + 음이 나간 오르골 + 테레민 + 삐걱임·심장박동·시계·먼 사무실 소리"""
+    bpm = 66; B = 3; bars = 16; beats = bars * B
+    s = Score(bpm).prog(0, 6, 70, 40, 90).prog(1, 43, 100, 64, 80).prog(2, 10, 85, 80, 100).prog(5, 10, 70, 48, 100) \
+                  .prog(3, 52, 85, 64, 110).prog(4, 44, 100, 64, 90).prog(9, 0, 70)
+    # 낮은 트레몰로 현: D·Eb 단2도 클러스터가 4마디마다 부풀었다 가라앉음
+    for k in range(0, bars, 4):
+        b0 = k * B
+        s.n(4, b0, 12, [38, 39, 45] if k % 8 == 0 else [37, 38, 44], 100)
+        s.ramp(4, b0, b0 + 7, 25, 115); s.ramp(4, b0 + 7, b0 + 12, 115, 30)
+        s.n(1, b0, 12, 26 if k % 8 == 0 else 25, 105)
+    # 음이 나간 오르골 (두 대를 서로 어긋나게 조율)
+    box = [(0, 74), (1, 77), (2, 80), (3, 79), (4.5, 74), (6, 73), (7, 70), (8, 69),
+           (12, 74), (13, 77), (14, 80), (15, 81), (16.5, 80), (18, 79), (19, 74), (21, 73)]
+    s.bend(2, 0, -700); s.bend(5, 0, 350)
+    for rep in (0, 24):
+        for b, p in box:
+            if rep and b in (3, 15): p += 1                         # 반복 때 한 음씩 더 어긋남
+            s.n(2, rep + b, 1.2, p, 82); s.n(5, rep + b + 0.04, 1.2, p, 55)
+    # 하프시코드 불협 화음 찌르기, 2마디마다
+    for k in range(0, bars, 2): s.n(0, k * B + 1.5, 0.3, [62, 63, 68] if k % 4 == 0 else [61, 62, 67], 70)
+    # 낮은 합창 "아—" (감7)
+    s.n(3, 24, 21, [50, 53, 56, 59], 75); s.ramp(3, 24, 36, 10, 100); s.ramp(3, 36, 45, 100, 20)
+    # 시계: 느리게 또각또각
+    for b in range(beats): s.n(9, b, .2, 77 if b % 3 else 76, 70 if b % 3 == 0 else 45)
     x = s.render(4)
-    loop = bars * B * 60 / bpm
-    th = theremin(mel, bpm, bars * B, level=0.11)
-    fol = office_foley(loop + 4, 60 / bpm, 0.8) * 0.9
-    y = mix(len(x) / SR, [(0, x), (0, th), (0, fol)])
+    beat = 60 / bpm; loop = beats * beat
+    mel = [(12, 3, 62), (15, 1.5, 68), (16.5, 1.5, 67), (18, 3, 63), (21, 3, 62),
+           (30, 2, 74), (32, 1, 73), (33, 3, 68), (36, 2, 70), (38, 1, 69), (39, 3, 63), (42, 4.5, 62)]
+    th = theremin(mel, bpm, beats, vib=0.016, glide=0.18, level=0.10)
+    parts = [(0, x), (0, th), (0, whisper_wind(loop + 4) * 0.8),
+             (0, office_foley(loop + 4, beat, 0.4) * 0.45),
+             (24 * beat - 2.5, rev_swell(2.5, 0.35)), (24 * beat, sub_boom(2.2, 38) * 0.9), (24 * beat, gong(5, 45) * 0.35),
+             (24 * beat, heartbeat(18) * 0.8)]
+    for t0, f0 in ((3.2, 650), (17.5, 900), (31.0, 520), (38.5, 780)): parts.append((t0, creak(RNG.uniform(1.0, 1.8), f0)))
+    y = mix(len(x) / SR, parts)
     return loop_wrap(y, loop)
 
-def _waltz_lobby(bars=32, bpm=84, key=0):
-    """모음곡 1·6: 저승관리청 로비 — 오르골·첼레스타 느린 왈츠"""
+def _waltz_lobby(bars=32, bpm=84, key=0, detune=0):
+    """모음곡 1·6: 저승관리청 로비 — 오르골·첼레스타 느린 왈츠 (detune: 오르골 음 나감 정도)"""
     s = Score(bpm).prog(0, 10, 85, 70, 80).prog(1, 8, 70, 54, 80).prog(2, 45, 80).prog(3, 49, 60, 64, 85).prog(9, 0, 50)
+    if detune: s.bend(0, 0, detune)
     ch = [(38, [62, 65, 69]), (34, [62, 65, 70]), (31, [62, 67, 70]), (33, [61, 64, 69]),
           (38, [62, 65, 69]), (36, [60, 64, 69]), (34, [62, 65, 70]), (33, [61, 64, 67])]
     mel = [74, 72, 70, 69, 77, 76, 74, 73]
@@ -687,13 +703,28 @@ def _xfade(chunks, fade=2.5):
         out = np.vstack([out[:-n], mid, c[n:]])
     return out.astype(np.float32)
 
+def _eerie_lobby():
+    """모음곡 1: 저승관리청 로비 — 스산하게. 음이 나간 오르골 왈츠 아래 낮은 현 클러스터, 바람, 삐걱임"""
+    x = _waltz_lobby(32, 76, detune=-650)
+    dur = len(x) / SR
+    s = Score(60).prog(4, 44, 95, 64, 90).prog(1, 43, 90, 64, 80)
+    for b0 in range(0, int(dur) - 4, 12):
+        s.n(4, b0, 12, [38, 39, 45], 95); s.ramp(4, b0, b0 + 6, 20, 105); s.ramp(4, b0 + 6, b0 + 12, 105, 25)
+        s.n(1, b0, 12, 26, 95)
+    bed = s.render(3)
+    parts = [(0, x * 0.85), (0, bed), (0, whisper_wind(dur) * 0.7)]
+    for t0 in np.arange(6, dur - 4, 13): parts.append((t0 + RNG.uniform(-2, 2), creak(RNG.uniform(1, 1.8), RNG.uniform(500, 900), 0.25)))
+    y = mix(dur, parts)
+    n = int(4 * SR); y[:n] *= np.linspace(0, 1, n)[:, None]        # 공연 전 첫 소리는 서서히
+    return y
+
 def house_suite():
     """관객 입장 음악 약 5분: 저승관리청의 여러 얼굴
     로비 왈츠 → 행정 업무 행진 → 삼도천 지하철 → 살아 있는 동안(피아노) → 저승사자 출장(스윙) → 환생 대기번호(왈츠 재현)"""
     def norm(x, db=-22):
         r = np.sqrt(np.mean(x.astype(np.float64) ** 2)) + 1e-9
         return (x * (10 ** (db / 20) / r)).astype(np.float32)
-    lobby = norm(_waltz_lobby(32, 84))
+    lobby = norm(_eerie_lobby(), -22)
     march = norm(_bureau_march(32, 112), -21)
     sub = norm(_subway(60), -23)
     pno = piano_theme(); pno = norm(np.vstack([pno, pno]), -23)
@@ -713,11 +744,11 @@ def house_suite():
 # 이전 34큐 버전은 git 기록(c0e548c)에 있습니다.
 CUES = [
     dict(id="0",  scene="프리쇼", title="관객 입장 음악 (약 5분)", timing="관객 입장 시간 · 조명 프리셋", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
-         note="저승관리청 모음곡: 로비 왈츠 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호"),
-    dict(id="1",  scene="1장", title="음악1 · 기괴한 저승 오피스", timing="입장 음악 F.O · 조명 fade out → 직원들 등장, 서류 정리 (주인공 제외)", file="01_underworld_office", gen=underworld_office, loop=True, fadeOthers=4,
-         note="오르골·하프시코드·테레민 왈츠 + 사무실 소리. 반복되므로 다음 큐로 넘김"),
+         note="저승관리청 모음곡: 스산한 로비 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호"),
+    dict(id="1",  scene="1장", title="음악1 · 스산한 저승 오피스 (공포 톤)", timing="입장 음악 F.O · 조명 fade out → 직원들 등장, 서류 정리 (주인공 제외)", file="01_underworld_office", gen=underworld_office, loop=True, fadeOthers=4,
+         note="낮은 현 클러스터·음 나간 오르골·테레민 + 삐걱임·시계·심장박동, 중간에 쿵 하는 저음. 반복되므로 다음 큐로 넘김"),
     dict(id="1B", scene="1장", title="주인공 센터 · 밝은 음악", timing="주인공이 센터로 나올 때 (\"여러분!!!\" 직전)", file="01_opening", gen=opening, fadeOthers=1.5,
-         note="기괴한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤"),
+         note="스산한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤"),
     dict(id="2",  scene="1장", title="휴대전화 벨소리 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
          note="음악 off 후 벨소리 (대본 메모)"),
     dict(id="2B", scene="1장", title="벨소리 정지", timing="주인공 \"여보세요?\" 직전 (받는 순간)", type="stop", fade=0.1,
@@ -740,7 +771,7 @@ CUES = [
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
-    "00_house_suite": -22, "01_underworld_office": -21, "03_ring": -19, "04_hangup": -21, "05_ringback": -21, "06_ars": -19, "09_chime": -19,
+    "00_house_suite": -22, "01_underworld_office": -22, "03_ring": -19, "04_hangup": -21, "05_ringback": -21, "06_ars": -19, "09_chime": -19,
 }
 
 def master(x, name):

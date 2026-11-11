@@ -8,22 +8,22 @@ window.CUES = [
   "timing": "관객 입장 시간 · 조명 프리셋",
   "loop": true,
   "vol": 0.6,
-  "note": "저승관리청 모음곡: 로비 왈츠 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호",
+  "note": "저승관리청 모음곡: 스산한 로비 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호",
   "type": "audio",
   "src": "audio/00_house_suite.mp3",
-  "dur": 301.75
+  "dur": 313.71
  },
  {
   "id": "1",
   "scene": "1장",
-  "title": "음악1 · 기괴한 저승 오피스",
+  "title": "음악1 · 스산한 저승 오피스 (공포 톤)",
   "timing": "입장 음악 F.O · 조명 fade out → 직원들 등장, 서류 정리 (주인공 제외)",
   "loop": true,
   "fadeOthers": 4,
-  "note": "오르골·하프시코드·테레민 왈츠 + 사무실 소리. 반복되므로 다음 큐로 넘김",
+  "note": "낮은 현 클러스터·음 나간 오르골·테레민 + 삐걱임·시계·심장박동, 중간에 쿵 하는 저음. 반복되므로 다음 큐로 넘김",
   "type": "audio",
   "src": "audio/01_underworld_office.wav",
-  "dur": 40.0
+  "dur": 43.64
  },
  {
   "id": "1B",
@@ -31,7 +31,7 @@ window.CUES = [
   "title": "주인공 센터 · 밝은 음악",
   "timing": "주인공이 센터로 나올 때 (\"여러분!!!\" 직전)",
   "fadeOthers": 1.5,
-  "note": "기괴한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤",
+  "note": "스산한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤",
   "type": "audio",
   "src": "audio/01_opening.mp3",
   "dur": 17.93
@@ -166,6 +166,6 @@ window.CUES = [
   "fadeIn": 3,
   "type": "audio",
   "src": "audio/00_house_suite.mp3",
-  "dur": 301.75
+  "dur": 313.71
  }
 ];
