@@ -487,53 +487,54 @@ def edit():
     sparkle = s.render(2.5)
     return mix(7.2, [(0, typing(1.5)), (1.65, enter_key()), (2.15, stamp()), (2.35, sparkle)])
 
-# ───────────────────────── 큐 목록 ─────────────────────────
+def ringback(cycles=2):
+    """한국 통화 연결음(발신음): 440+480Hz, 1초 울림 / 2초 쉼. 휴대폰 스피커 질감."""
+    t = T(1.0); tone = (np.sin(2 * np.pi * 440 * t) + np.sin(2 * np.pi * 480 * t)) * 0.3
+    tone *= np.minimum(1, np.minimum(t, 1.0 - t) / 0.01)
+    m = np.concatenate([np.concatenate([tone, np.zeros(int(2.0 * SR))]) for _ in range(cycles)])
+    m = filt(np.tanh(m * 1.4), [300, 3400], 'band', 2)
+    return st(m.astype(np.float32) * 0.8)
+
+def ars():
+    """녹음 메시지 시작 신호 (ARS 띵동)"""
+    s = Score(60).prog(0, 11, 110, 64, 60).prog(1, 8, 70, 64, 60)
+    s.n(0, 0, .5, 84, 110); s.n(1, 0, .5, 96, 60); s.n(0, .45, 1, 79, 105); s.n(1, .45, 1, 91, 55)
+    return s.render(1.0)
+
+# ───────────────────────── 큐 목록 (2026.11.08 대본 형광펜 표시 기준) ─────────────────────────
 # type: audio | stop      fadeOthers: GO 시 재생 중인 다른 큐를 몇 초에 걸쳐 페이드아웃
+# 이전 34큐 버전은 git 기록(c0e548c)에 있습니다.
 CUES = [
-    dict(id="0",   scene="프리쇼", title="하우스 음악", timing="관객 입장 중 (공연 전)", file="00_house", gen=house, loop=True, vol=0.55),
-    dict(id="1",   scene="1장", title="오프닝 테마", timing="밝은 조명 · 지문 '음악1'", file="01_opening", gen=opening, fadeOthers=2.5, note="\"여러분!!!\" 직전에 볼륨을 낮춤"),
-    dict(id="2A",  scene="1장", title="공포 스팅", timing="\"결재하는 사람입니다.\" 정적 뒤", file="02a_scare", gen=scare, fadeOthers=0.5),
-    dict(id="2B",  scene="1장", title="코믹 띠용", timing="\"이렇게 말하니 좀 무서운데요?\"", file="02b_boing", gen=boing),
-    dict(id="3",   scene="1장", title="휴대전화 벨소리", timing="\"…'저승관리청' 이었어요!\"", file="03_ring", gen=ring, loop=True, vol=0.8),
-    dict(id="3B",  scene="1장", title="벨소리 정지", timing="전화를 받는 순간", type="stop", fade=0.1),
-    dict(id="4",   scene="1장", title="통화 종료음", timing="\"열심히 준비 하겠습니다!\"", file="04_hangup", gen=busy_tone),
-    dict(id="5",   scene="1장", title="자정 괘종 + 바람", timing="\"시간은 밤12시 장소는 멘사장례식장?\"", file="05_midnight", gen=midnight, note="바람은 면접장 전환까지 이어짐"),
-    dict(id="6",   scene="1장", title="장면 전환 징글", timing="\"이번에는 제발 합격했으면 좋겠다!\" 암전", file="06_jingle", gen=jingle, fadeOthers=1.5),
-    dict(id="7",   scene="2장", title="감사팀장 등장", timing="\"다들 일어나요. 감사팀장님 오시네요.\"", file="07_auditor", gen=auditor, fadeOthers=1),
-    dict(id="8",   scene="2장", title="장면 전환 징글", timing="인사담당자 퇴장", file="06_jingle", fadeOthers=1.5),
-    dict(id="9",   scene="3장", title="합격 안내 + 팡파르", timing="암전 중 녹음 메시지 끝", file="09_pass", gen=pass_notice),
-    dict(id="10",  scene="3장", title="도장 쾅", timing="\"완벽히 일치했습니다. 승인!!!\"", file="10_stamp", gen=stamp),
-    dict(id="11",  scene="3장", title="긴장 드론 + 심장박동", timing="\"자, 그 다음 대상자는…… 이름 유내일.\"", file="11_drone", gen=drone, note="대사가 짧으면 11B로 바로 끊음"),
-    dict(id="11B", scene="3장", title="드론 컷 (정적)", timing="\"(자기자신을 가리킨다.) 나 네?\"", type="stop", fade=0),
-    dict(id="12",  scene="3장", title="호러 쇼크", timing="\"으아아아아악!!! 저에요!!!\"", file="12_horror", gen=horror, fadeOthers=0),
-    dict(id="13",  scene="4장", title="코믹 팡파르", timing="\"우와! 축하해.\"", file="13_comic_fanfare", gen=comic_fanfare),
-    dict(id="14",  scene="4장", title="휴대전화 벨소리 (크게)", timing="\"지금 칭찬하실 때가 아니잖아요!\" 직후", file="03_ring", loop=True, vol=1.0, fadeOthers=0.3),
-    dict(id="14B", scene="4장", title="벨소리 정지", timing="전화를 받는 순간", type="stop", fade=0.1),
-    dict(id="15",  scene="4장", title="실패 트롬본", timing="\"저승에도 이해 충돌 방지 규정이 있더라고요.\"", file="15_trombone", gen=trombone),
-    dict(id="16",  scene="5장", title="공포 스팅 + 천둥", timing="\"특이사항 본 계약은 사망 이후에도 유효함.\"", file="16_thunder", gen=thunder_sting, fadeOthers=0.3),
-    dict(id="17",  scene="5~6장", title="감성 피아노 테마", timing="\"왜 바로 승인하지 않았어?\"", file="17_piano", gen=piano_theme, loop=True, fadeIn=5, vol=0.7, note="팀장 대사에 맞춰 볼륨을 서서히 올림"),
-    dict(id="18",  scene="6장", title="감성 F.O → 띠용", timing="\"물론 연장근무는 좀 줄였으면 좋겠습니다.\"", file="02b_boing", fadeOthers=2.5),
-    dict(id="19",  scene="6장", title="저승사자 테마 + 동전", timing="저승사자 배낭 메고 등장", file="19_reaper", gen=reaper, fadeOthers=0.5),
-    dict(id="20A", scene="7장", title="엘리베이터 띵", timing="\"엘리베이터에서 방귀 뀌고…\"", file="20a_ding", gen=ding),
-    dict(id="20B", scene="7장", title="범인 발각 스팅", timing="\"설마 어제 엘리베이터에서 그 방귀…….\"", file="20b_dundun", gen=dundun),
-    dict(id="21",  scene="7장", title="서정 현악 + 물소리", timing="\"누군가에게 다시 살아갈 기회를 주는 일이요.\"", file="21_strings", gen=strings_theme, loop=True, fadeIn=4, vol=0.65),
-    dict(id="22",  scene="7장", title="희망 테마 (클라이맥스)", timing="\"살아 있는 동안에만 할 수 있는 일이 있어요.\"", file="22_hope", gen=hope, fadeOthers=3, fadeIn=2),
-    dict(id="23",  scene="8장", title="사내 방송 차임", timing="지문 '(방송) 긴급 공지'", file="23_chime", gen=chime, fadeOthers=1),
-    dict(id="24",  scene="8장", title="축하 팡파르", timing="\"응 수습기간이 종료됐어.\"", file="24_fanfare", gen=fanfare),
-    dict(id="25",  scene="8장", title="희망 테마", timing="\"……역시 이 기관은 이상합니다.\"", file="22_hope", fadeIn=4, vol=0.75),
-    dict(id="26",  scene="9장", title="타이핑 → 엔터 → 도장", timing="\"제 수명을…… 4,444년으로 수정하겠습니다!\"", file="26_edit", gen=edit, fadeOthers=2),
-    dict(id="27",  scene="9장", title="커튼콜", timing="\"여러분! 저승관리청은 항상 정상 영업합니다!\"", file="27_curtain", gen=curtain, fadeIn=3, note="\"하나, 둘! 감사합니다!!!\"에 마지막 화음이 오도록 미리 출발"),
-    dict(id="28",  scene="커튼콜 후", title="하우스 음악", timing="커튼콜 인사 후 하우스 조명", file="00_house", loop=True, vol=0.55, fadeOthers=4, fadeIn=3),
+    dict(id="0",  scene="프리쇼", title="하우스 음악", timing="관객 입장 중 (공연 전)", file="00_house", gen=house, loop=True, vol=0.55),
+    dict(id="1",  scene="1장", title="음악1 · 밝은 음악", timing="지문 '밝은 조명. 음악1'", file="01_opening", gen=opening, fadeOthers=2.5,
+         note="음악 종류: 경쾌한 오피스 코미디(우쿨렐레·글로켄슈필·휘슬, 132BPM). \"여러분!!!\" 직전에 볼륨을 낮춤"),
+    dict(id="2",  scene="1장", title="휴대전화 벨소리 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8),
+    dict(id="2B", scene="1장", title="벨소리 정지", timing="주인공 \"여보세요?\" 직전 (받는 순간)", type="stop", fade=0.1,
+         note="이어지는 인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
+    dict(id="3",  scene="1장", title="통화 종료음", timing="지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)", file="04_hangup", gen=busy_tone),
+    dict(id="4",  scene="2장", title="통화 발신음", timing="지문 '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.'", file="05_ringback", gen=ringback, loop=True, vol=0.8),
+    dict(id="4B", scene="2장", title="발신음 정지", timing="팀장 \"감사팀장님 오랜만이에요.\" 직전 (연결되는 순간)", type="stop", fade=0.1),
+    dict(id="5",  scene="3장", title="녹음 메시지 신호음", timing="지문 '녹음된 메세지가 재생된다' (3장 시작, 암전 중)", file="06_ars", gen=ars,
+         note="이어서 인사담당자 메시지: 배우 녹음 파일로 교체하거나 무대 뒤 마이크 + 전화 음색 EQ"),
+    dict(id="6",  scene="3장", title="명부 재확인 스팅", timing="\"…저였어요!!!(명부를 다시 확인한다.)\"", file="07_recheck", gen=dundun),
+    dict(id="7",  scene="3→4장", title="4장 전환 음악", timing="\"(머리를 감싼다.)\" → 4장 시작", file="08_jingle", gen=jingle),
+    dict(id="8",  scene="4장", title="휴대전화 벨소리 (크게)", timing="지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)", file="03_ring", loop=True, vol=1.0),
+    dict(id="8B", scene="4장", title="벨소리 정지", timing="\"(전화 받음.) 여보세요?\"", type="stop", fade=0.1,
+         note="인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
+    dict(id="9",  scene="8장", title="방송음 (사내 방송 차임)", timing="인사담당자 \"(방송) 긴급 공지입니다…\" 직전", file="09_chime", gen=chime,
+         note="차임 끝나고 방송 대사: 무대 뒤 마이크 + 확성기 음색 EQ"),
+    dict(id="10", scene="9장", title="밝은 음악 · 커튼콜", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain, fadeOthers=1,
+         note="\"하나, 둘! 감사합니다!!!\" · 암전 뒤 인사가 끝날 때까지 이어짐 (마지막 화음은 시작 약 27초 뒤)"),
+    dict(id="11", scene="공연 후", title="하우스 음악", timing="커튼콜 인사 후 하우스 조명", file="00_house", loop=True, vol=0.55, fadeOthers=4, fadeIn=3),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
-    "00_house": -22, "17_piano": -21, "21_strings": -21, "05_midnight": -22, "11_drone": -20,
-    "03_ring": -19, "04_hangup": -21, "20a_ding": -20, "23_chime": -19, "10_stamp": -17,
+    "00_house": -22, "03_ring": -19, "04_hangup": -21, "05_ringback": -21, "06_ars": -19, "09_chime": -19,
 }
 
 def master(x, name):
     x = x.astype(np.float64)
-    if not name.endswith(("house", "piano", "strings", "ring")):        # 루프가 아니면 꼬리 정리
+    if not name.endswith(("house", "piano", "strings", "ring", "ringback")):        # 루프가 아니면 꼬리 정리
         env = np.max(np.abs(x), 1); idx = np.where(env > 10 ** (-62 / 20))[0]
         if len(idx): x = x[:idx[-1] + int(0.05 * SR)]
         n = int(0.04 * SR); x[-n:] *= np.linspace(1, 0, n)[:, None]

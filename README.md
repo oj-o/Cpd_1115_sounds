@@ -6,7 +6,7 @@
 cue_package/
 ├─ index.html          ← 큐 플레이어 (더블클릭으로 실행)
 ├─ cues.js             ← 큐 목록 (순서·볼륨·페이드·음원 경로)
-├─ audio/              ← 공연용 음원 26개 (직접 작곡·렌더링, 저작권 걱정 없음)
+├─ audio/              ← 공연용 음원 10개 (직접 작곡·렌더링, 저작권 걱정 없음)
 ├─ tools/
 │   ├─ render_cues.py  ← audio/ 음원을 다시 만드는 Python 스크립트
 │   └─ generate_ml.py  ← (선택) ML 모델로 음원을 새로 생성
@@ -16,7 +16,7 @@ cue_package/
 ## 1. 실행
 
 1. 폴더 전체를 공연용 노트북에 복사합니다. `audio/` 폴더가 `index.html` 옆에 있어야 합니다.
-2. `index.html`을 **Chrome 또는 Edge**로 엽니다. 상단에 "음원 26개 준비 완료"가 뜨면 준비된 것입니다.
+2. `index.html`을 **Chrome 또는 Edge**로 엽니다. 상단에 "음원 10개 준비 완료"가 뜨면 준비된 것입니다.
 3. 처음 한 번은 화면을 클릭하거나 GO를 눌러야 소리가 나옵니다(브라우저 정책).
 
 | 조작 | 기능 |
@@ -30,25 +30,36 @@ cue_package/
 
 GO를 연달아 두 번 눌러도 한 번만 실행됩니다(0.25초 이중 입력 방지).
 
-## 2. 큐 구성 (총 34개)
+## 2. 큐 구성 (2026.11.08 대본 형광펜 표시 기준, 총 15개)
 
-- **음원 큐**: 소리를 재생합니다. `반복` 표시가 있는 큐(하우스 음악, 벨소리, 감성 테마, 서정 현악)는 끊김 없이 반복되므로 직접 페이드하거나 다음 큐로 끄세요.
-- **정지 큐**(3B, 11B, 14B): 재생 중인 소리를 끕니다. 벨소리를 "전화 받는 순간" 끊을 때 씁니다.
-- **이전 F.O**: GO를 누르면 앞에서 재생 중이던 소리를 그 시간 동안 자연스럽게 줄이고 새 큐를 시작합니다. 예를 들어 1번 오프닝은 하우스 음악을 2.5초 동안 줄이며 시작합니다.
-- **F.I**: 새 큐가 0에서 시작해 서서히 커집니다.
+| 큐 | 장 | GO 타이밍 | 소리 |
+| --- | --- | --- | --- |
+| 0 | 프리쇼 | 관객 입장 중 | 하우스 음악 (반복) |
+| 1 | 1장 | 지문 '밝은 조명. 음악1' | 밝은 음악 (경쾌한 오피스 코미디) |
+| 2 | 1장 | 지문 '휴대전화 벨소리.' | 벨소리 수신 (반복) |
+| 2B | 1장 | "여보세요?" 받는 순간 | 벨소리 정지 |
+| 3 | 1장 | 지문 '(전화 종료)' | 통화 종료음 |
+| 4 | 2장 | '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.' | 통화 발신음 (반복) |
+| 4B | 2장 | "감사팀장님 오랜만이에요." 직전 | 발신음 정지 |
+| 5 | 3장 | '녹음된 메세지가 재생된다' | 녹음 메시지 신호음 |
+| 6 | 3장 | "(명부를 다시 확인한다.)" | 명부 재확인 스팅 |
+| 7 | 3→4장 | "(머리를 감싼다.)" → 4장 | 4장 전환 음악 |
+| 8 | 4장 | 지문 '그때 휴대전화 벨소리.' | 벨소리 수신, 크게 (반복) |
+| 8B | 4장 | "(전화 받음.) 여보세요?" | 벨소리 정지 |
+| 9 | 8장 | "(방송) 긴급 공지입니다…" 직전 | 사내 방송 차임 |
+| 10 | 9장 | '밝은 음악. 모두 관객을 향해 인사한다.' | 커튼콜 밝은 음악 |
+| 11 | 공연 후 | 커튼콜 인사 후 | 하우스 음악 (반복) |
 
-대본 기준 핵심 흐름은 다음과 같습니다.
-
-- 1장: 오프닝, 공포 스팅과 띠용, 벨소리, 자정 괘종
-- 3장: 도장 → 긴장 드론(11) → **11B로 정적** → 호러 쇼크(12)
-- 5~7장: 감성 피아노(17), 서정 현악(21), 희망 테마(22)
-- 9장: 수명 수정(26), 커튼콜(27), 하우스 음악(28)
+- **반복 큐**(0, 2, 4, 8, 11)는 정지 큐나 다음 큐로 끕니다.
+- **정지 큐**(2B, 4B, 8B)는 재생 중인 소리를 끕니다. 전화를 받거나 연결되는 순간에 누릅니다.
+- **음성 대사**: 인사담당자의 (전화)·(방송)·녹음 메시지 대사는 배우가 무대 뒤 마이크로 하고, 믹서에서 전화·확성기 음색 EQ(저음·고음 컷)를 겁니다. 녹음 메시지를 미리 녹음했다면 `audio/06_ars.mp3` 뒤에 붙이거나 그 파일을 바꿔 넣으면 됩니다.
+- 이전 34큐 버전(공포 스팅, 감성 테마 등)은 git 기록 `c0e548c`에 남아 있습니다.
 
 ## 3. 리허설 체크리스트
 
 - [ ] 극장 스피커로 큐마다 볼륨을 맞추고, `cues.js`의 `vol`(0~1)에 적어 둡니다.
-- [ ] 27번 커튼콜은 "하나, 둘! 감사합니다!!!"에 마지막 화음(시작 후 약 27초)이 오도록 출발 시점을 맞춥니다.
-- [ ] 11번 드론은 "나 네?"에서 11B로 끊고, 1초 정적 후 12번을 실행합니다.
+- [ ] 10번 커튼콜 음악은 마지막 화음이 시작 약 27초 뒤에 옵니다. 인사 길이에 맞춰 `F`(3초 페이드)로 정리합니다.
+- [ ] 2B·8B는 배우가 전화를 받는 동작과 정확히 맞춥니다.
 - [ ] 노트북 절전·화면 보호기·알림을 끄고 전원을 연결합니다.
 - [ ] 다른 브라우저 탭과 메신저를 닫습니다. 알림음이 객석 스피커로 나갈 수 있습니다.
 - [ ] 패키지를 USB에 한 부 더 복사해 둡니다.
@@ -73,26 +84,15 @@ GO를 연달아 두 번 눌러도 한 번만 실행됩니다(0.25초 이중 입�
 
 | 큐 | 검색어 |
 | --- | --- |
-| 0, 28 하우스 | `quirky lobby music`, `playful background celesta` |
-| 1 오프닝, 27 커튼콜 | `ukulele happy comedy`, `whistle upbeat quirky` |
-| 2A, 12, 16 공포 스팅 | `horror stinger`, `jump scare hit`, `thunder clap` |
-| 2B, 18 띠용 | `cartoon boing`, `spring boing` |
-| 3, 14 벨소리 | `phone ringing`, `marimba ringtone` |
-| 4 통화 종료 | `phone busy tone`, `hang up beep` |
-| 5 자정 | `grandfather clock midnight`, `wind howling` |
-| 6, 8 전환 | `spooky transition sting`, `halloween comedy sting` |
-| 7 감사팀장 | `gong`, `epic brass entrance` |
-| 9, 13, 24 팡파르 | `brass fanfare short`, `tada fanfare`, `applause small crowd` |
-| 10 도장 | `stamp paper`, `rubber stamp` |
-| 11 드론 | `suspense drone`, `heartbeat tension` |
-| 15 실패 | `sad trombone` |
-| 17 감성 | `emotional piano`, `sad piano theme` |
-| 19 저승사자 | `sneaky jazz`, `coins drop` |
-| 20A, 20B | `elevator ding`, `dun dun dun dramatic` |
-| 21 서정 | `warm strings cello`, `river stream` |
-| 22, 25 희망 | `inspiring orchestral`, `uplifting cinematic` |
-| 23 방송 | `announcement chime`, `school bell chime` |
-| 26 수정 | `keyboard typing`, `magic sparkle` |
+| 0, 11 하우스 | `quirky lobby music`, `playful background celesta` |
+| 1 밝은 음악, 10 커튼콜 | `ukulele happy comedy`, `whistle upbeat quirky` |
+| 2, 8 벨소리 | `phone ringing`, `marimba ringtone` |
+| 3 통화 종료 | `phone busy tone`, `hang up beep` |
+| 4 통화 발신음 | `phone ringback tone`, `calling tone` |
+| 5 녹음 메시지 신호음 | `notification chime`, `ARS ding dong` |
+| 6 명부 재확인 | `dun dun dun dramatic` |
+| 7 4장 전환 | `comedy transition sting` |
+| 9 방송 차임 | `announcement chime`, `school bell chime` |
 
 내려받은 파일은 앞뒤 무음을 잘라 내고 음량을 맞춘 뒤 넣으세요. 무료 편집기 Audacity의 "자르기"와 "정규화"를 쓰면 됩니다.
 
