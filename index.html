@@ -60,6 +60,13 @@ aside{border-left:1px solid var(--line);background:var(--panel);display:flex;fle
 #go:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
 #go[disabled]{background:var(--raise);color:var(--muted);cursor:default}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fsel{display:flex;align-items:center;gap:8px}
+.fsel .lbl{flex:none}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);flex:1;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{all:unset;box-sizing:border-box;text-align:center;padding:7px 0;cursor:pointer;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--warn);color:#2a1a00}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .btn{all:unset;box-sizing:border-box;text-align:center;padding:10px;border-radius:8px;background:var(--raise);border:1px solid var(--line);cursor:pointer;font-weight:600}
 .btn:hover{border-color:var(--muted)}
 .btn:focus-visible{outline:2px solid var(--accent)}
@@ -96,7 +103,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.11c · 앞부분 스산한 공포 톤 · 16큐</span>
+    <span class="status">v2026.11.11d · 페이드 3·5·10초 선택 · 16큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -116,22 +123,27 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
       <div class="nextcue"><span class="id" id="nId">–</span><span class="ttl" id="nTitle">–</span></div>
       <div class="timing" id="nTiming"></div>
       <button id="go" type="button">GO</button>
+      <div class="fsel"><span class="lbl">페이드 시간</span>
+        <div class="seg" role="group" aria-label="페이드 시간">
+          <button type="button" data-sec="3" aria-pressed="true">3초</button><button type="button" data-sec="5" aria-pressed="false">5초</button><button type="button" data-sec="10" aria-pressed="false">10초</button>
+        </div>
+      </div>
       <div class="btns">
         <button class="btn" id="fadeAll" type="button">전체 페이드 (3초)</button>
         <button class="btn stop" id="stopAll" type="button">전체 정지</button>
       </div>
-      <div class="keys"><kbd>Space</kbd> GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>F</kbd> 전체 페이드 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생</div>
+      <div class="keys"><kbd>Space</kbd> GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>F</kbd> 전체 페이드 · <kbd>3</kbd><kbd>5</kbd><kbd>0</kbd> 페이드 3·5·10초 선택 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생</div>
     </section>
     <section class="active" id="active"><p class="empty">재생 중인 큐가 없습니다.</p></section>
   </aside>
 </div>
 
-<script src="cues.js?v=20261111d"></script>
+<script src="cues.js?v=20261111e"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
   const $ = id => document.getElementById(id);
-  let standby = 0, master = 1, lastGo = 0, uid = 0;
+  let standby = 0, master = 1, lastGo = 0, uid = 0, fadeSec = 3;
   const running = new Map();            // uid -> {cue, audio, base, gain, fadeTimer, card, ...}
   const pool = new Map();               // src -> preloaded Audio
   const missing = new Set();
@@ -238,9 +250,9 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     el.innerHTML = `<div class="row"><span class="id">${c.id}</span><span class="ttl">${c.title}</span><span class="time" data-t>0:00</span></div>
       <div class="bar"><i></i></div>
       <div class="row"><input type="range" min="0" max="100" value="${Math.round(r.base * 100)}" aria-label="큐 ${c.id} 볼륨">
-      <button class="mini" type="button" data-f>페이드 3s</button><button class="mini x" type="button" data-s>정지</button></div>`;
+      <button class="mini" type="button" data-f>페이드 ${fadeSec}s</button><button class="mini x" type="button" data-s>정지</button></div>`;
     el.querySelector("input").oninput = e => { r.base = e.target.value / 100; apply(r); };
-    el.querySelector("[data-f]").onclick = () => stopRun(r, 3);
+    el.querySelector("[data-f]").onclick = () => stopRun(r, fadeSec);
     el.querySelector("[data-s]").onclick = () => stopRun(r, 0);
     return el;
   }
@@ -260,7 +272,16 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 
   // ── 조작 ──
   $("go").onclick = go;
-  $("fadeAll").onclick = () => stopAll(3);
+  function setFade(sec) {
+    fadeSec = sec;
+    document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.sec === sec)));
+    $("fadeAll").textContent = `전체 페이드 (${sec}초)`;
+    running.forEach(r => { const b = r.card.querySelector("[data-f]"); if (b) b.textContent = `페이드 ${sec}s`; });
+    try { localStorage.setItem("fadeSec", String(sec)); } catch (e) {}
+  }
+  document.querySelectorAll(".seg button").forEach(b => b.onclick = () => setFade(+b.dataset.sec));
+  try { const v = +localStorage.getItem("fadeSec"); if ([3, 5, 10].includes(v)) setFade(v); } catch (e) {}
+  $("fadeAll").onclick = () => stopAll(fadeSec);
   $("stopAll").onclick = () => stopAll(0);
   $("master").oninput = e => { master = e.target.value / 100; $("mvv").textContent = e.target.value; running.forEach(apply); };
   document.addEventListener("keydown", e => {
@@ -269,7 +290,10 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     else if (e.key === "ArrowDown") { e.preventDefault(); setStandby(standby + 1); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setStandby(standby - 1); }
     else if (e.key === "Escape") { e.preventDefault(); stopAll(0); }
-    else if (e.key === "f" || e.key === "F" || e.key === "ㄹ") { stopAll(3); }
+    else if (e.key === "f" || e.key === "F" || e.key === "ㄹ") { stopAll(fadeSec); }
+    else if (e.key === "3") setFade(3);
+    else if (e.key === "5") setFade(5);
+    else if (e.key === "0") setFade(10);
   });
   render();
 })();
