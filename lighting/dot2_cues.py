@@ -5,7 +5,8 @@
 조명 큐는 엑셀로 여는 CSV 파일 4개에 들어 있습니다. 이 파일들을 고친 뒤 이 프로그램을 돌리면
 dot2 명령 목록과 인쇄용 큐시트가 새로 만들어지고, dot2 onPC에 자동으로 입력할 수 있습니다.
 
-  cues.csv     큐 목록: 큐 번호, 이름, 페이드, 그룹별 레벨(0~100), 색·위치 프리셋 이름
+  cues.csv     큐 목록: 큐 번호, 이름, 페이드, '명령' 칸 (예: spot on, bg 30 blue, off, A)
+  looks.csv    자주 쓰는 룩 이름 ↔ 명령 (예: A = front 70, top 60, wash 50, bg 30, office)
   patch.csv    장비 ID와 DMX 주소
   groups.csv   그룹 번호, 이름, 장비 선택
   presets.csv  프리셋 이름 ↔ dot2 프리셋 번호
@@ -78,28 +79,37 @@ def load():
         if not TYPEABLE.match(name): errs.append(f"groups.csv {i}행: 그룹 이름 '{name}'은 영문·숫자로만 써야 dot2에 입력됩니다.")
         if not TYPEABLE.match(sel) or not sel.startswith("Fixture"): errs.append(f"groups.csv {i}행: 선택 '{sel}'은 'Fixture 1 Thru 6 + 13' 형식이어야 합니다.")
         exp = r.get("대수", "")
+        yes = lambda k: r.get(k, "").upper() in ("O", "Y", "YES", "1", "TRUE")
         groups.append(dict(no=g, name=name, sel=sel, expected=int(float(exp)) if exp else None,
-                           reset=r.get("매 큐 0으로 초기화", "").upper() in ("O", "Y", "YES", "1", "TRUE")))
+                           reset=yes("매 큐 0으로 초기화"), color=yes("색·위치"),
+                           alias=[a.strip().lower() for a in r.get("별칭", "").split("/") if a.strip()]))
     gby = {g["name"]: g for g in groups}
 
     presets = {}
     for i, r in enumerate(read_csv("presets.csv"), 2):
         try:
-            presets[r["이름"]] = (num(r["dot2 프리셋"]), r.get("종류", ""), r.get("설명", ""))
+            presets[r["이름"]] = (num(r["dot2 프리셋"]), r.get("종류", ""), r.get("설명", ""),
+                                 [a.strip().lower() for a in r.get("별칭", "").split("/") if a.strip()])
         except (ValueError, KeyError):
             errs.append(f"presets.csv {i}행: dot2 프리셋 번호 '{r.get('dot2 프리셋')}'가 '4.1' 같은 형식이 아닙니다.")
+
+    looks = {}
+    if os.path.exists(os.path.join(HERE, "looks.csv")):
+        for r in read_csv("looks.csv"):
+            if r.get("룩"): looks[r["룩"].lower()] = r.get("명령", "")
+    P = Parser(groups, presets, looks)
 
     raw = read_csv("cues.csv")
     cols = list(raw[0].keys()) if raw else []
     level_cols, attr_cols = [], []
     for c in cols:
-        if c in FIXED_COLS: continue
+        if c in FIXED_COLS or c == "명령": continue
         m = re.fullmatch(r"(.+) (색|위치)", c)
         if m:
             if m.group(1) not in gby: errs.append(f"cues.csv: '{c}' 열의 그룹 '{m.group(1)}'이 groups.csv에 없습니다.")
             else: attr_cols.append((c, m.group(1), m.group(2)))
         elif c in gby: level_cols.append(c)
-        else: errs.append(f"cues.csv: '{c}' 열을 알 수 없습니다. 그룹 이름, '그룹 색', '그룹 위치' 중 하나여야 합니다.")
+        else: errs.append(f"cues.csv: '{c}' 열을 알 수 없습니다. 명령, 그룹 이름, '그룹 색', '그룹 위치' 중 하나여야 합니다.")
     cues, seen = [], set()
     for i, r in enumerate(raw, 2):
         try:
@@ -116,33 +126,40 @@ def load():
             if float(fade) < 0: raise ValueError
         except ValueError:
             errs.append(f"cues.csv {i}행: Fade '{r.get('Fade')}'는 0 이상 숫자(초)여야 합니다."); fade = "0"
-        levels = []   # (그룹, 값) — groups.csv 순서
+        lv, at = {}, {}          # 그룹이름 → 값 / (그룹이름, 종류) → 프리셋이름
         for g in groups:
-            if g["name"] not in level_cols: continue
-            v = r.get(g["name"], "")
-            if v == "":
-                if g["reset"]: levels.append((g, 0))
-                continue
-            try:
-                x = float(v)
-                if not 0 <= x <= 100: raise ValueError
-                levels.append((g, int(x) if x == int(x) else x))
-            except ValueError:
-                errs.append(f"cues.csv {i}행: {g['name']} 레벨 '{v}'는 0~100이어야 합니다.")
+            if g["reset"]: lv[g["name"]] = 0
+        cmd = r.get("명령", "")
+        if cmd:
+            for msg in P.apply(cmd, lv, at): errs.append(f"cues.csv {i}행 명령 '{cmd}': {msg}")
+        else:                    # 예전 방식: 그룹별 숫자 칸
+            for g in groups:
+                if g["name"] not in level_cols: continue
+                v = r.get(g["name"], "")
+                if v == "": continue
+                try:
+                    x = float(v)
+                    if not 0 <= x <= 100: raise ValueError
+                    lv[g["name"]] = int(x) if x == int(x) else x
+                except ValueError:
+                    errs.append(f"cues.csv {i}행: {g['name']} 레벨 '{v}'는 0~100이어야 합니다.")
+            for c, gname, kind in attr_cols:
+                p = r.get(c, "")
+                if not p: continue
+                if p not in presets: errs.append(f"cues.csv {i}행: '{c}'의 프리셋 '{p}'이 presets.csv에 없습니다.")
+                else: at[(gname, kind)] = p
         # 초기화 그룹을 먼저, 그 일부를 덮어쓰는 그룹(Spot Solo 등)을 나중에 입력
-        levels.sort(key=lambda t: (not t[0]["reset"], groups.index(t[0])))
-        attrs = []
-        for c, gname, kind in attr_cols:
-            p = r.get(c, "")
-            if not p: continue
-            if p not in presets: errs.append(f"cues.csv {i}행: '{c}'의 프리셋 '{p}'이 presets.csv에 없습니다.")
-            else: attrs.append((gby[gname], presets[p][0], kind))
-        attrs.sort(key=lambda t: t[2] == "위치")
+        levels = sorted(((gby[n], v) for n, v in lv.items()), key=lambda t: (not t[0]["reset"], groups.index(t[0])))
+        attrs = sorted(((gby[n], presets[p][0], k, p) for (n, k), p in at.items()),
+                       key=lambda t: (t[2] == "위치", groups.index(t[0])))
         trig = (r.get("Trig") or "Go").strip()
         if trig.lower() not in ("go", "follow"): errs.append(f"cues.csv {i}행: Trig는 Go 또는 Follow입니다 ('{trig}').")
         cues.append(dict(no=no, name=name, fade=fade, trig="Follow" if trig.lower() == "follow" else "Go",
-                         levels=levels, attrs=attrs, script=r.get("대본표시", ""), timing=r.get("GO 타이밍", ""),
+                         levels=levels, attrs=attrs, lv=lv, cmd=cmd, script=r.get("대본표시", ""), timing=r.get("GO 타이밍", ""),
                          sound=r.get("음향", ""), memo=r.get("메모", ""), raw=r))
+    # 큐시트에 보일 그룹: 초기화 그룹 + 한 번이라도 쓰인 그룹
+    used_g = {n for c in cues for n in c["lv"]}
+    level_cols = [g["name"] for g in groups if g["reset"] or g["name"] in used_g]
     for g in groups:
         if g["expected"]:
             n = count_selection(g["sel"], set(ids))
@@ -150,7 +167,78 @@ def load():
                 errs.append(f"groups.csv: {g['name']} 선택 '{g['sel']}'은 patch.csv 기준 {n}대인데 대수 칸은 {g['expected']}입니다.")
     if errs:
         raise CueFileError("\n".join(errs))
-    return dict(patch=patch, groups=groups, presets=presets, cues=cues, level_cols=level_cols, attr_cols=attr_cols)
+    return dict(patch=patch, groups=groups, presets=presets, looks=looks, cues=cues, level_cols=level_cols)
+
+class Parser:
+    """'명령' 칸 해석기.  쉼표로 나눈 항목을 왼쪽부터 차례로 적용합니다.
+      off / bo / 암전          모든 '매 큐 0' 그룹을 0으로 (명령을 안 쓴 그룹도 원래 0)
+      spot on / spot off       100 / 0          spot 70      레벨 70
+      all on / all 60          Blinder·House·Fog를 뺀 '매 큐 0' 그룹 전체
+      bg 30 blue               레벨 + 색 프리셋   spot solo 70 amber desk  레벨 + 색 + 위치
+      blue                     그룹 없이 색만 쓰면, 그 시점에 켜져 있는 색·위치 그룹 전부에 적용
+      A                        looks.csv의 룩을 그대로 펼침 (뒤에 항목을 더 써서 덮어쓸 수 있음)
+    그룹·프리셋 이름은 대소문자 구분 없음, groups.csv·presets.csv의 '별칭'(예: 스팟, 블루)도 됩니다."""
+    ALL_EXCLUDE = {"blinder", "house", "fog"}
+    ON, OFF = {"on", "켬", "full"}, {"off", "끔"}
+
+    def __init__(self, groups, presets, looks):
+        self.groups, self.presets, self.looks = groups, presets, looks
+        self.gnames = []                      # (토큰 목록, 그룹) — 긴 이름 먼저
+        for g in groups:
+            for n in [g["name"].lower()] + g["alias"]:
+                self.gnames.append((n.split(), g))
+        self.gnames.sort(key=lambda t: -len(t[0]))
+        self.pnames = {}
+        for p, v in presets.items():
+            for n in [p.lower()] + v[3]: self.pnames[n] = p
+
+    def apply(self, text, lv, at, depth=0):
+        errs = []
+        if depth > 5: return ["룩이 서로를 계속 부릅니다."]
+        for item in [x.strip() for x in re.split(r"[,;/]", text) if x.strip()]:
+            low = item.lower()
+            toks = low.split()
+            if low in self.looks:
+                errs += self.apply(self.looks[low], lv, at, depth + 1); continue
+            if low in ("off", "bo", "blackout", "암전", "all off"):
+                for g in self.groups:
+                    if g["reset"]: lv[g["name"]] = 0
+                continue
+            targets, rest = None, toks
+            if toks[0] in ("all", "전체"):
+                targets = [g for g in self.groups if g["reset"] and g["name"].lower() not in self.ALL_EXCLUDE]; rest = toks[1:]
+            else:
+                for ntoks, g in self.gnames:
+                    if toks[:len(ntoks)] == ntoks:
+                        targets, rest = [g], toks[len(ntoks):]; break
+            if targets is None:            # 그룹 없이 프리셋만: 색은 켜진 색·위치 그룹 전부에
+                for t in toks:
+                    p = self.pnames.get(t)
+                    if not p: errs.append(f"'{t}'는 그룹·프리셋·룩 이름이 아닙니다."); continue
+                    kind = self.presets[p][1]
+                    if kind == "위치": errs.append(f"위치 프리셋 '{p}'는 그룹과 함께 쓰세요 (예: spot {p.lower()})."); continue
+                    on = [g for g in self.groups if g["color"] and lv.get(g["name"], 0) > 0]
+                    if not on: errs.append(f"'{p}'를 받을 켜진 색 그룹이 없습니다. 그룹 레벨을 먼저 쓰세요.")
+                    for g in on: at[(g["name"], kind)] = p
+                continue
+            if not rest: errs.append(f"'{item}': 그룹 뒤에 on/off, 숫자, 프리셋 중 하나를 쓰세요."); continue
+            for t in rest:
+                if t in self.ON: val = 100
+                elif t in self.OFF: val = 0
+                elif re.fullmatch(r"\d+(\.\d+)?%?", t):
+                    val = float(t.rstrip("%"))
+                    if val > 100: errs.append(f"'{item}': 레벨 {t}는 0~100이어야 합니다."); continue
+                    val = int(val) if val == int(val) else val
+                else:
+                    p = self.pnames.get(t)
+                    if not p: errs.append(f"'{item}': '{t}'를 알 수 없습니다."); continue
+                    kind = self.presets[p][1]
+                    for g in targets:
+                        if not g["color"]: errs.append(f"'{item}': {g['name']}는 색·위치가 없는 디머 그룹입니다."); continue
+                        at[(g["name"], kind)] = p
+                    continue
+                for g in targets: lv[g["name"]] = val
+        return errs
 
 def count_selection(sel, ids):
     body = sel.replace("Fixture", "", 1)
@@ -178,7 +266,7 @@ def stage2(D):
         out.append(("note", f"큐 {c['no']} {c['name']}"))
         for g, v in c["levels"]:
             out.append(("cmd", f"Group {g['no']} At {v}"))
-        for g, p, _ in c["attrs"]:
+        for g, p, _, _ in c["attrs"]:
             out.append(("cmd", f"Group {g['no']} At Preset {p}"))
         out.append(("cmd", f"Store Cue {c['no']} Fade {c['fade']}"))
         if c["name"]: out += [("cmd", f"Label Cue {c['no']}"), ("name", c["name"])]
@@ -202,7 +290,7 @@ def write_commands(D, path):
             else: lines.append(f"{n:4d}  {text}")
         lines.append("")
     lines.append("########## 프리셋 (2단계 전에 직접 저장) ##########")
-    for nm, (k, kind, desc) in D["presets"].items(): lines.append(f"Preset {k}  {nm:8s} {kind}: {desc}")
+    for nm, (k, kind, desc, _) in D["presets"].items(): lines.append(f"Preset {k}  {nm:8s} {kind}: {desc}")
     follow = [c["no"] for c in D["cues"] if c["trig"] == "Follow"]
     if follow: lines.append(f"\n# 2단계 후 손으로: 큐 {', '.join(follow)}의 Trig를 Follow로 바꾸세요.")
     with open(path, "w", encoding="utf-8") as f: f.write("\n".join(lines) + "\n")
@@ -214,9 +302,9 @@ def write_sheet(D, path):
     head = "".join(f"<th class='lv'>{e(c)}</th>" for c in lv)
     rows = []
     for c in D["cues"]:
-        r = c["raw"]
-        cells = "".join(f"<td class='lv{' z' if (r.get(n) in ('', '0')) else ''}'>{e(r.get(n, '')) or '·'}</td>" for n in lv)
-        attrs = ", ".join("%s %s %s" % (g["name"], kind, e(r.get("%s %s" % (g["name"], kind), ""))) for g, _, kind in c["attrs"])
+        cells = "".join(f"<td class='lv{' z' if not c['lv'].get(n) else ''}'>{e(str(c['lv'][n])) if n in c['lv'] else '·'}</td>" for n in lv)
+        attrs = ", ".join("%s %s" % (g["name"], e(p)) for g, _, _, p in c["attrs"])
+        if c["cmd"]: attrs = f"<b>{e(c['cmd'])}</b><br>" + attrs
         rows.append(f"<tr class='{'follow' if c['trig'] == 'Follow' else ''}'><td class='no'>{e(c['no'])}</td><td>{e(c['script'])}</td>"
                     f"<td class='go'>{e(c['timing'])}</td><td>{e(c['name'])}</td><td class='t'>{e(c['fade'])}s</td><td>{e(c['trig'])}</td>"
                     f"<td class='t'>{e(c['sound'])}</td>{cells}<td class='attr'>{attrs}</td><td>{e(c['memo'])}</td></tr>")
@@ -237,7 +325,7 @@ tr {{ page-break-inside: avoid; }}
 </style></head><body>
 <h1>저승공무원으로 취업했습니다!!! · 조명 큐시트 (MA dot2)</h1>
 <p>cues.csv에서 자동 생성 · 레벨 단위 % · 노란 줄은 Trig Follow(앞 큐 뒤 자동 진행) · ♪는 동시에 나가는 음향 큐 번호</p>
-<table><thead><tr><th>큐</th><th>대본</th><th>GO 타이밍</th><th>이름</th><th>Fade</th><th>Trig</th><th>♪</th>{head}<th>색·위치</th><th>메모</th></tr></thead>
+<table><thead><tr><th>큐</th><th>대본</th><th>GO 타이밍</th><th>이름</th><th>Fade</th><th>Trig</th><th>♪</th>{head}<th>명령 → 색·위치</th><th>메모</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></body></html>"""
     with open(path, "w", encoding="utf-8") as f: f.write(doc)
 

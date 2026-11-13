@@ -1,12 +1,12 @@
-﻿그룹,이름,선택,대수,매 큐 0으로 초기화
-1,Spot,Fixture 201 Thru 208,8,O
-2,Wash,Fixture 101 Thru 110,10,O
-3,Front,Fixture 1 Thru 6 + 13 Thru 18,12,O
-4,Top,Fixture 19 Thru 24,6,O
-5,Back,Fixture 26 + 28 + 29 + 32 Thru 36,8,O
-6,BG,Fixture 301 Thru 310 + 37,11,O
-7,Blinder,Fixture 401 Thru 404,4,O
-8,House,Fixture 601 Thru 616,15,O
-9,Fog,Fixture 501,1,
-10,Spot Solo,Fixture 202,1,
-11,Spot Pair,Fixture 205 + 208,2,
+﻿그룹,이름,선택,대수,매 큐 0으로 초기화,색·위치,별칭
+1,Spot,Fixture 201 Thru 208,8,O,O,스팟/무빙
+2,Wash,Fixture 101 Thru 110,10,O,O,워시
+3,Front,Fixture 1 Thru 6 + 13 Thru 18,12,O,,프런트/프론트/front light
+4,Top,Fixture 19 Thru 24,6,O,,탑
+5,Back,Fixture 26 + 28 + 29 + 32 Thru 36,8,O,,백
+6,BG,Fixture 301 Thru 310 + 37,11,O,O,배경/background
+7,Blinder,Fixture 401 Thru 404,4,O,,블라인더
+8,House,Fixture 601 Thru 616,15,O,,하우스/객석
+9,Fog,Fixture 501,1,,,포그
+10,Spot Solo,Fixture 202,1,,O,솔로/주인공
+11,Spot Pair,Fixture 205 + 208,2,,O,페어/감사팀장
