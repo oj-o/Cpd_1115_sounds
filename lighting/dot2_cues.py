@@ -16,6 +16,7 @@ dot2 명령 목록과 인쇄용 큐시트가 새로 만들어지고, dot2 onPC�
   python dot2_cues.py type 1         1단계(패치 주소 + 그룹) 자동 입력  ← Windows + dot2 onPC
   python dot2_cues.py type 2         2단계(큐) 자동 입력
   python dot2_cues.py type 2 --from 40   40번째 줄부터 이어서
+  python dot2_cues.py show           쇼 한 번에 만들기: 1단계 → (프리셋 저장 대기) → 2단계 → 저장 안내
 
 자동 입력 중 멈추려면 마우스를 화면 왼쪽 위 모서리로 옮기세요.
 """
@@ -400,9 +401,26 @@ def run_type(D, stage, start, delay):
         print(f"Cues 창에서 큐 {D['cues'][0]['no']}~{D['cues'][-1]['no']}를 확인하세요."
               + (f" 큐 {', '.join(follow)}의 Trig를 Follow로 바꾼 뒤" if follow else "") + " 쇼를 저장하세요.")
 
+def run_show(D, delay):
+    """쇼 파일을 한 번에 만드는 순서. dot2 쇼 파일(.backup)은 공개된 형식이 없어 dot2가 직접 저장하게 합니다."""
+    if os.name != "nt":
+        sys.exit("쇼 만들기는 Windows에서 dot2 onPC를 켠 상태로 실행하세요.")
+    print("=== 쇼 파일 만들기 ===")
+    print("준비: dot2 onPC에서 New Show를 열고, README 2번 표대로 장비를 추가해 두세요 (Patch 칸은 비움).")
+    input("준비됐으면 Enter → 5초 안에 dot2 명령줄 클릭 ")
+    run_type(D, 1, 1, delay)
+    print("\n이제 dot2에서 프리셋을 저장하세요 (번호를 정확히):")
+    for nm, (k, kind, desc, _) in D["presets"].items():
+        print(f"  Preset {k:5s} {nm:8s} {kind}: {desc}")
+    input("프리셋 저장이 끝났으면 Enter → 5초 안에 dot2 명령줄 클릭 ")
+    run_type(D, 2, 1, delay)
+    name = "Jeoseung_" + time.strftime("%m%d")
+    print(f"\n마지막: Backup → Save Show As → 이름 '{name}' → USB를 꽂은 상태면 USB에도 같이 저장됩니다.")
+    print("이 파일을 dot2 core에서 Backup → Load Show로 여세요.")
+
 def main():
     ap = argparse.ArgumentParser(description="dot2 조명 큐 파일 생성기")
-    ap.add_argument("mode", choices=["build", "check", "type", "list"])
+    ap.add_argument("mode", choices=["build", "check", "type", "list", "show"])
     ap.add_argument("stage", nargs="?", type=int, choices=[1, 2])
     ap.add_argument("--from", dest="start", type=int, default=1)
     ap.add_argument("--delay", type=float, default=0.03, help="글자 사이 간격(초). 글자가 빠지면 0.06으로")
@@ -418,6 +436,8 @@ def main():
         write_commands(D, os.path.join(HERE, "dot2_commands.txt"))
         write_sheet(D, os.path.join(HERE, "cue_sheet.html"))
         print(f"만들었습니다 · dot2_commands.txt (1단계 {n1}줄, 2단계 {n2}줄), cue_sheet.html (큐 {len(D['cues'])}개)")
+    elif a.mode == "show":
+        run_show(D, a.delay)
     else:
         if not a.stage: ap.error("type 다음에 1 또는 2를 쓰세요")
         run_type(D, a.stage, a.start, a.delay)
