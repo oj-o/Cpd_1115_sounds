@@ -1,4 +1,4 @@
-# dot2 명령 목록 — dot2_cues.py가 만든 파일입니다. 손으로 입력할 때도 이 순서대로 쓰면 됩니다.
+# dot2 명령 목록 — dot2_cues.py가 cues.csv 등으로 만든 파일입니다. 직접 고치지 말고 CSV를 고친 뒤 다시 만드세요.
 # [이름창] 줄은 앞 줄(Label)을 입력하면 뜨는 이름 입력 창에 넣는 글자입니다.
 
 ########## 1단계 — 패치 주소 + 그룹 ##########
@@ -380,3 +380,5 @@ Preset 2.1  DownC    위치: 다운센터 독백 (Spot)
 Preset 2.2  Desk     위치: 주인공 책상 (Spot Solo)
 Preset 2.3  Audit    위치: 감사팀장 자리 (Spot Pair)
 Preset 2.4  Sweep    위치: 커튼콜 객석 쪽 (Spot)
+
+# 2단계 후 손으로: 큐 12.5의 Trig를 Follow로 바꾸세요.

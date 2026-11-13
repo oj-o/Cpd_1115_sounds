@@ -1,119 +1,187 @@
 #!/usr/bin/env python3
 """
-저승공무원으로 취업했습니다!!! — MA dot2 조명 큐 자동 입력기
+저승공무원으로 취업했습니다!!! — 조명 큐 파일 생성기 (MA dot2)
 
-dot2는 외부 파일로 쇼를 불러오는 기능이 없어서, 이 스크립트가 dot2 onPC의 명령줄에
-명령을 대신 타이핑해 쇼를 만듭니다. 완성된 쇼 파일을 USB로 콘솔(dot2 core)에 옮기면 됩니다.
+조명 큐는 엑셀로 여는 CSV 파일 4개에 들어 있습니다. 이 파일들을 고친 뒤 이 프로그램을 돌리면
+dot2 명령 목록과 인쇄용 큐시트가 새로 만들어지고, dot2 onPC에 자동으로 입력할 수 있습니다.
 
-  python dot2_cues.py list            명령 목록을 화면과 dot2_commands.txt로 출력 (어디서나 실행 가능)
-  python dot2_cues.py type 1          1단계(패치 주소 + 그룹) 자동 입력  ← Windows + dot2 onPC
-  python dot2_cues.py type 2          2단계(큐) 자동 입력
-  python dot2_cues.py type 2 --from 40  중간에 멈췄을 때 40번째 줄부터 다시
+  cues.csv     큐 목록: 큐 번호, 이름, 페이드, 그룹별 레벨(0~100), 색·위치 프리셋 이름
+  patch.csv    장비 ID와 DMX 주소
+  groups.csv   그룹 번호, 이름, 장비 선택
+  presets.csv  프리셋 이름 ↔ dot2 프리셋 번호
+
+  python dot2_cues.py build          검사 → dot2_commands.txt, cue_sheet.html 생성 (어디서나 실행 가능)
+  python dot2_cues.py check          파일 검사만
+  python dot2_cues.py type 1         1단계(패치 주소 + 그룹) 자동 입력  ← Windows + dot2 onPC
+  python dot2_cues.py type 2         2단계(큐) 자동 입력
+  python dot2_cues.py type 2 --from 40   40번째 줄부터 이어서
 
 자동 입력 중 멈추려면 마우스를 화면 왼쪽 위 모서리로 옮기세요.
 """
-import sys, time, argparse, os
+import sys, time, argparse, os, csv, html, re
 
-# ───────────── 1. 장비 (패치는 2026.06.22 극장 도면 기준) ─────────────
-# (Fixture ID, DMX "유니버스.주소" 또는 None=패치 안 함)
-FIXTURES = (
-    [(101 + i, f"2.{a}") for i, a in enumerate([96, 116, 135, 154, 173])] +      # Diamond19 워시 SUS1
-    [(106 + i, f"2.{a}") for i, a in enumerate([1, 20, 39, 58, 77])] +           # Diamond19 워시 SUS2
-    [(201 + i, f"2.{a}") for i, a in enumerate([273, 291, 309, 327])] +          # Rogue R2X Spot SUS1
-    [(205 + i, f"2.{a}") for i, a in enumerate([201, 219, 237, 255])] +          # Rogue R2X Spot SUS2
-    [(301 + i, f"2.{a}") for i, a in enumerate([350, 353, 356, 359, 362])] +     # LED 파 3ch SUS6
-    [(306 + i, f"2.{a}") for i, a in enumerate([365, 366, 367, 368, 369])] +     # 1ch 장비 SUS6/SUS4
-    [(d, f"1.{d}") for d in list(range(1, 7)) + list(range(13, 25)) + [26, 28, 29] + list(range(32, 38))] +  # 디머 회로
-    [(401 + i, None) for i in range(4)] +                                         # 블라인더 4구 650W, Sensor3 디머 구동 (회로 확인 후 수동 패치)
-    [(501, "3.505")] +                                                            # 포그 JEM ZR35
-    [(601 + i, f"3.{347 + 2 * i}") for i in range(9)] +                           # 하우스 LED 파 2ch
-    [(611 + i, f"3.{507 + i}") for i in range(6)]                                 # 하우스 디머
-)
+HERE = os.path.dirname(os.path.abspath(__file__))
+FIXED_COLS = ["큐", "이름", "대본표시", "GO 타이밍", "Fade", "Trig", "음향", "메모"]
+TYPEABLE = re.compile(r"^[A-Za-z0-9 .\-+]*$")   # dot2에 자동으로 입력할 수 있는 글자
 
-# ───────────── 2. 그룹 ─────────────
-GROUPS = [  # (번호, 이름, dot2 선택 문법)
-    (1, "Spot",      "Fixture 201 Thru 208"),
-    (2, "Wash",      "Fixture 101 Thru 110"),
-    (3, "Front",     "Fixture 1 Thru 6 + 13 Thru 18"),
-    (4, "Top",       "Fixture 19 Thru 24"),
-    (5, "Back",      "Fixture 26 + 28 + 29 + 32 Thru 36"),
-    (6, "BG",        "Fixture 301 Thru 310 + 37"),
-    (7, "Blinder",   "Fixture 401 Thru 404"),
-    (8, "House",     "Fixture 601 Thru 616"),
-    (9, "Fog",       "Fixture 501"),
-    (10, "Spot Solo", "Fixture 202"),
-    (11, "Spot Pair", "Fixture 205 + 208"),
-]
-EXPECTED = {1: 8, 2: 10, 3: 12, 4: 6, 5: 8, 6: 11, 7: 4, 8: 15, 9: 1, 10: 1, 11: 2}
+class CueFileError(Exception):
+    pass
 
-# ───────────── 3. 프리셋 (2단계 전에 직접 만들 것) ─────────────
-# 색·위치는 엔코더로만 정할 수 있어서 자동 입력이 불가능합니다. 아래 번호에 미리 저장해 두세요.
-PRESETS = {
-    "4.1": ("Office",   "색: 차가운 화이트 + 연보라 (Wash·BG·Spot)"),
-    "4.2": ("Meeting",  "색: 회의실 웜 화이트 (Wash·BG)"),
-    "4.3": ("Amber",    "색: 앰버 (Wash·Spot)"),
-    "4.4": ("Blue",     "색: 배경 블루 (BG)"),
-    "4.5": ("Curtain",  "색: 커튼콜 멀티 (Wash·BG·Spot)"),
-    "2.1": ("DownC",    "위치: 다운센터 독백 (Spot)"),
-    "2.2": ("Desk",     "위치: 주인공 책상 (Spot Solo)"),
-    "2.3": ("Audit",    "위치: 감사팀장 자리 (Spot Pair)"),
-    "2.4": ("Sweep",    "위치: 커튼콜 객석 쪽 (Spot)"),
-}
+# ───────────── CSV 읽기 ─────────────
+def read_csv(name):
+    path = os.path.join(HERE, name)
+    if not os.path.exists(path):
+        raise CueFileError(f"{name} 파일이 없습니다.")
+    for enc in ("utf-8-sig", "cp949"):            # 엑셀이 한국어 윈도우에서 저장하면 cp949가 될 수 있음
+        try:
+            with open(path, newline="", encoding=enc) as f:
+                rows = [r for r in csv.DictReader(f)]
+            return [{(k or "").strip(): (v or "").strip() for k, v in r.items()} for r in rows
+                    if any((v or "").strip() for v in r.values())]
+        except UnicodeDecodeError:
+            continue
+    raise CueFileError(f"{name}의 글자 인코딩을 읽을 수 없습니다. 'CSV UTF-8'로 다시 저장하세요.")
 
-# ───────────── 4. 큐 (대본 빨간 원 기준, 조명 큐 문서와 같은 번호) ─────────────
-ALL = [1, 2, 3, 4, 5, 6, 7, 8]   # 매 큐마다 이 그룹들의 값을 모두 명시해 트래킹 꼬임 방지 (포그 9는 페이더로 수동 운용)
-SUB = [10, 11]                    # Spot 그룹(1)의 일부. 켤 때만 Group 1 다음에 덮어씀
-def look(**lv):  # 지정 안 한 그룹은 0
-    d = {g: lv.get(f"g{g}", 0) for g in ALL}
-    d.update({g: lv[f"g{g}"] for g in SUB if lv.get(f"g{g}")})
-    return d
+def num(text):
+    """'4.10'·'4.1'·'10.0' 같은 엑셀 표기를 dot2 표기로 정리"""
+    f = float(text)
+    return f"{f:g}"
 
-A = dict(levels=look(g3=70, g4=60, g2=50, g6=30), color={2: "4.1", 6: "4.1"})
-BO = dict(levels=look(), color={})
-CUES = [  # (큐, 이름, 페이드 초, 상태)
-    ("0.5", "Preshow",    0,   dict(levels=look(g8=100, g6=15), color={6: "4.4"})),
-    ("1",   "House Out",  5,   BO),
-    ("2",   "1 Office",   2,   A),
-    ("3",   "2 Meeting",  3,   dict(levels=look(g3=80, g4=60, g2=50, g6=30), color={2: "4.2", 6: "4.2"})),
-    ("4",   "3-4 BO",     1,   BO),
-    ("5",   "4 Office",   1.5, A),
-    ("6",   "7 Audit",    4,   dict(levels=look(g3=55, g4=30, g5=40, g2=30, g6=20, g11=60),
-                                    color={2: "4.3", 6: "4.4", 11: "4.3"}, pos={11: "2.3"})),
-    ("7",   "7 Spot",     5,   dict(levels=look(g10=70, g3=10, g2=10, g6=10), color={10: "4.3"}, pos={10: "2.2"})),
-    ("8",   "7 BO",       3,   BO),
-    ("9",   "8 Office",   2,   A),
-    ("10",  "9 Full",     10,  dict(levels=look(g3=85, g4=70, g2=60, g5=50, g6=40), color={2: "4.1", 6: "4.1"})),
-    ("11",  "CC Bright",  2,   dict(levels=look(g1=100, g2=100, g3=100, g4=100, g5=100, g6=100),
-                                    color={1: "4.5", 2: "4.5", 6: "4.5"}, pos={1: "2.4"})),
-    ("12",  "CC Blinder", 0,   dict(levels=look(g1=100, g2=100, g3=100, g4=100, g5=100, g6=100, g7=100), color={}, pos={})),
-    ("12.5", "CC BO",     0,   BO),
-    ("13",  "Bow",        1,   dict(levels=look(g1=100, g2=100, g3=100, g4=100, g5=100, g6=100), color={1: "4.5", 2: "4.5", 6: "4.5"}, pos={1: "2.4"})),
-    ("14",  "House In",   5,   dict(levels=look(g8=100), color={})),
-]
+def load():
+    errs = []
+    patch = []
+    for i, r in enumerate(read_csv("patch.csv"), 2):
+        try:
+            fid = int(float(r["ID"]))
+        except (ValueError, KeyError):
+            errs.append(f"patch.csv {i}행: ID '{r.get('ID')}'가 숫자가 아닙니다."); continue
+        dmx = r.get("DMX", "")
+        if dmx and not re.fullmatch(r"[1-4]\.\d{1,3}", dmx):
+            errs.append(f"patch.csv {i}행: DMX '{dmx}'는 '유니버스.주소' 형식(예: 2.96)이어야 합니다.")
+        elif dmx and not 1 <= int(dmx.split(".")[1]) <= 512:
+            errs.append(f"patch.csv {i}행: DMX 주소는 1~512입니다 ({dmx}).")
+        patch.append((fid, dmx, r.get("장비", ""), r.get("위치", "")))
+    ids = [p[0] for p in patch]
+    for d in sorted({x for x in ids if ids.count(x) > 1}):
+        errs.append(f"patch.csv: ID {d}가 두 번 나옵니다.")
+    used = [p[1] for p in patch if p[1]]
+    for d in sorted({x for x in used if used.count(x) > 1}):
+        errs.append(f"patch.csv: DMX {d}가 두 장비에 겹칩니다.")
+
+    groups = []
+    for i, r in enumerate(read_csv("groups.csv"), 2):
+        try:
+            g = int(float(r["그룹"]))
+        except (ValueError, KeyError):
+            errs.append(f"groups.csv {i}행: 그룹 번호가 숫자가 아닙니다."); continue
+        name, sel = r.get("이름", ""), r.get("선택", "")
+        if not TYPEABLE.match(name): errs.append(f"groups.csv {i}행: 그룹 이름 '{name}'은 영문·숫자로만 써야 dot2에 입력됩니다.")
+        if not TYPEABLE.match(sel) or not sel.startswith("Fixture"): errs.append(f"groups.csv {i}행: 선택 '{sel}'은 'Fixture 1 Thru 6 + 13' 형식이어야 합니다.")
+        exp = r.get("대수", "")
+        groups.append(dict(no=g, name=name, sel=sel, expected=int(float(exp)) if exp else None,
+                           reset=r.get("매 큐 0으로 초기화", "").upper() in ("O", "Y", "YES", "1", "TRUE")))
+    gby = {g["name"]: g for g in groups}
+
+    presets = {}
+    for i, r in enumerate(read_csv("presets.csv"), 2):
+        try:
+            presets[r["이름"]] = (num(r["dot2 프리셋"]), r.get("종류", ""), r.get("설명", ""))
+        except (ValueError, KeyError):
+            errs.append(f"presets.csv {i}행: dot2 프리셋 번호 '{r.get('dot2 프리셋')}'가 '4.1' 같은 형식이 아닙니다.")
+
+    raw = read_csv("cues.csv")
+    cols = list(raw[0].keys()) if raw else []
+    level_cols, attr_cols = [], []
+    for c in cols:
+        if c in FIXED_COLS: continue
+        m = re.fullmatch(r"(.+) (색|위치)", c)
+        if m:
+            if m.group(1) not in gby: errs.append(f"cues.csv: '{c}' 열의 그룹 '{m.group(1)}'이 groups.csv에 없습니다.")
+            else: attr_cols.append((c, m.group(1), m.group(2)))
+        elif c in gby: level_cols.append(c)
+        else: errs.append(f"cues.csv: '{c}' 열을 알 수 없습니다. 그룹 이름, '그룹 색', '그룹 위치' 중 하나여야 합니다.")
+    cues, seen = [], set()
+    for i, r in enumerate(raw, 2):
+        try:
+            no = num(r["큐"]); nf = float(no)
+        except (ValueError, KeyError):
+            errs.append(f"cues.csv {i}행: 큐 번호 '{r.get('큐')}'가 숫자가 아닙니다."); continue
+        if no in seen: errs.append(f"cues.csv {i}행: 큐 {no}가 두 번 나옵니다.")
+        if cues and nf <= float(cues[-1]["no"]): errs.append(f"cues.csv {i}행: 큐 {no}가 앞 큐({cues[-1]['no']})보다 작습니다. 큐는 오름차순이어야 합니다.")
+        seen.add(no)
+        name = r.get("이름", "")
+        if not TYPEABLE.match(name): errs.append(f"cues.csv {i}행: 큐 이름 '{name}'은 영문·숫자로만 써야 dot2에 입력됩니다. 한글 설명은 'GO 타이밍'이나 '메모'에 쓰세요.")
+        try:
+            fade = num(r.get("Fade") or "0")
+            if float(fade) < 0: raise ValueError
+        except ValueError:
+            errs.append(f"cues.csv {i}행: Fade '{r.get('Fade')}'는 0 이상 숫자(초)여야 합니다."); fade = "0"
+        levels = []   # (그룹, 값) — groups.csv 순서
+        for g in groups:
+            if g["name"] not in level_cols: continue
+            v = r.get(g["name"], "")
+            if v == "":
+                if g["reset"]: levels.append((g, 0))
+                continue
+            try:
+                x = float(v)
+                if not 0 <= x <= 100: raise ValueError
+                levels.append((g, int(x) if x == int(x) else x))
+            except ValueError:
+                errs.append(f"cues.csv {i}행: {g['name']} 레벨 '{v}'는 0~100이어야 합니다.")
+        # 초기화 그룹을 먼저, 그 일부를 덮어쓰는 그룹(Spot Solo 등)을 나중에 입력
+        levels.sort(key=lambda t: (not t[0]["reset"], groups.index(t[0])))
+        attrs = []
+        for c, gname, kind in attr_cols:
+            p = r.get(c, "")
+            if not p: continue
+            if p not in presets: errs.append(f"cues.csv {i}행: '{c}'의 프리셋 '{p}'이 presets.csv에 없습니다.")
+            else: attrs.append((gby[gname], presets[p][0], kind))
+        attrs.sort(key=lambda t: t[2] == "위치")
+        trig = (r.get("Trig") or "Go").strip()
+        if trig.lower() not in ("go", "follow"): errs.append(f"cues.csv {i}행: Trig는 Go 또는 Follow입니다 ('{trig}').")
+        cues.append(dict(no=no, name=name, fade=fade, trig="Follow" if trig.lower() == "follow" else "Go",
+                         levels=levels, attrs=attrs, script=r.get("대본표시", ""), timing=r.get("GO 타이밍", ""),
+                         sound=r.get("음향", ""), memo=r.get("메모", ""), raw=r))
+    for g in groups:
+        if g["expected"]:
+            n = count_selection(g["sel"], set(ids))
+            if n is not None and n != g["expected"]:
+                errs.append(f"groups.csv: {g['name']} 선택 '{g['sel']}'은 patch.csv 기준 {n}대인데 대수 칸은 {g['expected']}입니다.")
+    if errs:
+        raise CueFileError("\n".join(errs))
+    return dict(patch=patch, groups=groups, presets=presets, cues=cues, level_cols=level_cols, attr_cols=attr_cols)
+
+def count_selection(sel, ids):
+    body = sel.replace("Fixture", "", 1)
+    total = set()
+    for part in body.split("+"):
+        m = re.fullmatch(r"\s*(\d+)\s*(?:Thru\s*(\d+))?\s*", part, re.I)
+        if not m: return None
+        a, b = int(m.group(1)), int(m.group(2) or m.group(1))
+        total |= {x for x in range(a, b + 1) if x in ids}
+    return len(total)
 
 # ───────────── 명령 생성 ─────────────
-# 각 항목: ("cmd", 텍스트) | ("name", 이름창에 입력할 텍스트)
-def stage1():
+def stage1(D):
     out = [("note", "1단계: 패치 주소 지정")]
-    for fid, dmx in FIXTURES:
+    for fid, dmx, _, _ in D["patch"]:
         if dmx: out.append(("cmd", f"Assign Fixture {fid} At DMX {dmx}"))
     out.append(("note", "1단계: 그룹 저장 (값을 하나 넣어 선택을 닫아야 다음 선택이 새로 시작됩니다)"))
-    for g, name, sel in GROUPS:
-        out += [("cmd", sel), ("cmd", f"Store Group {g}"), ("cmd", f"Label Group {g}"), ("name", name), ("cmd", "At 0")]
+    for g in D["groups"]:
+        out += [("cmd", g["sel"]), ("cmd", f"Store Group {g['no']}"), ("cmd", f"Label Group {g['no']}"), ("name", g["name"]), ("cmd", "At 0")]
     return out
 
-def stage2():
+def stage2(D):
     out = []
-    for no, name, fade, s in CUES:
-        out.append(("note", f"큐 {no} {name}"))
-        for g, v in s["levels"].items():
-            out.append(("cmd", f"Group {g} At {v}"))
-        for g, p in s.get("color", {}).items():
-            out.append(("cmd", f"Group {g} At Preset {p}"))
-        for g, p in s.get("pos", {}).items():
-            out.append(("cmd", f"Group {g} At Preset {p}"))
-        out.append(("cmd", f"Store Cue {no} Fade {fade:g}" if isinstance(fade, (int, float)) else f"Store Cue {no}"))
-        out += [("cmd", f"Label Cue {no}"), ("name", name)]
+    for c in D["cues"]:
+        out.append(("note", f"큐 {c['no']} {c['name']}"))
+        for g, v in c["levels"]:
+            out.append(("cmd", f"Group {g['no']} At {v}"))
+        for g, p, _ in c["attrs"]:
+            out.append(("cmd", f"Group {g['no']} At Preset {p}"))
+        out.append(("cmd", f"Store Cue {c['no']} Fade {c['fade']}"))
+        if c["name"]: out += [("cmd", f"Label Cue {c['no']}"), ("name", c["name"])]
     return out
 
 def numbered(items):
@@ -123,10 +191,10 @@ def numbered(items):
         else: n += 1; rows.append((n, kind, text))
     return rows
 
-def write_list(path):
-    lines = ["# dot2 명령 목록 — dot2_cues.py가 만든 파일입니다. 손으로 입력할 때도 이 순서대로 쓰면 됩니다.",
+def write_commands(D, path):
+    lines = ["# dot2 명령 목록 — dot2_cues.py가 cues.csv 등으로 만든 파일입니다. 직접 고치지 말고 CSV를 고친 뒤 다시 만드세요.",
              "# [이름창] 줄은 앞 줄(Label)을 입력하면 뜨는 이름 입력 창에 넣는 글자입니다.", ""]
-    for title, items in (("1단계 — 패치 주소 + 그룹", stage1()), ("2단계 — 큐", stage2())):
+    for title, items in (("1단계 — 패치 주소 + 그룹", stage1(D)), ("2단계 — 큐", stage2(D))):
         lines.append(f"########## {title} ##########")
         for n, kind, text in numbered(items):
             if kind == "note": lines.append(f"\n# {text}")
@@ -134,9 +202,44 @@ def write_list(path):
             else: lines.append(f"{n:4d}  {text}")
         lines.append("")
     lines.append("########## 프리셋 (2단계 전에 직접 저장) ##########")
-    for k, (nm, desc) in PRESETS.items(): lines.append(f"Preset {k}  {nm:8s} {desc}")
+    for nm, (k, kind, desc) in D["presets"].items(): lines.append(f"Preset {k}  {nm:8s} {kind}: {desc}")
+    follow = [c["no"] for c in D["cues"] if c["trig"] == "Follow"]
+    if follow: lines.append(f"\n# 2단계 후 손으로: 큐 {', '.join(follow)}의 Trig를 Follow로 바꾸세요.")
     with open(path, "w", encoding="utf-8") as f: f.write("\n".join(lines) + "\n")
-    return "\n".join(lines)
+
+def write_sheet(D, path):
+    """인쇄용 조명 큐시트 (브라우저로 열어 인쇄)"""
+    e = html.escape
+    lv = D["level_cols"]
+    head = "".join(f"<th class='lv'>{e(c)}</th>" for c in lv)
+    rows = []
+    for c in D["cues"]:
+        r = c["raw"]
+        cells = "".join(f"<td class='lv{' z' if (r.get(n) in ('', '0')) else ''}'>{e(r.get(n, '')) or '·'}</td>" for n in lv)
+        attrs = ", ".join("%s %s %s" % (g["name"], kind, e(r.get("%s %s" % (g["name"], kind), ""))) for g, _, kind in c["attrs"])
+        rows.append(f"<tr class='{'follow' if c['trig'] == 'Follow' else ''}'><td class='no'>{e(c['no'])}</td><td>{e(c['script'])}</td>"
+                    f"<td class='go'>{e(c['timing'])}</td><td>{e(c['name'])}</td><td class='t'>{e(c['fade'])}s</td><td>{e(c['trig'])}</td>"
+                    f"<td class='t'>{e(c['sound'])}</td>{cells}<td class='attr'>{attrs}</td><td>{e(c['memo'])}</td></tr>")
+    doc = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>조명 큐시트</title><style>
+@page {{ size: A4 landscape; margin: 10mm; }}
+body {{ font-family: "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif; font-size: 10.5px; color: #111; margin: 16px; }}
+h1 {{ font-size: 16px; margin: 0 0 4px; }} p {{ margin: 0 0 8px; color: #555; }}
+table {{ border-collapse: collapse; width: 100%; }}
+th, td {{ border: 1px solid #999; padding: 3px 4px; vertical-align: top; }}
+th {{ background: #e9e7f2; font-weight: 700; }}
+td.no {{ font-weight: 800; font-size: 13px; text-align: center; white-space: nowrap; }}
+td.go {{ font-weight: 600; min-width: 150px; }}
+td.lv, th.lv {{ text-align: center; width: 34px; font-variant-numeric: tabular-nums; }}
+td.z {{ color: #bbb; }} td.t {{ text-align: center; white-space: nowrap; }}
+td.attr {{ font-size: 9.5px; color: #333; }}
+tr.follow td {{ background: #fff6e0; }}
+tr {{ page-break-inside: avoid; }}
+</style></head><body>
+<h1>저승공무원으로 취업했습니다!!! · 조명 큐시트 (MA dot2)</h1>
+<p>cues.csv에서 자동 생성 · 레벨 단위 % · 노란 줄은 Trig Follow(앞 큐 뒤 자동 진행) · ♪는 동시에 나가는 음향 큐 번호</p>
+<table><thead><tr><th>큐</th><th>대본</th><th>GO 타이밍</th><th>이름</th><th>Fade</th><th>Trig</th><th>♪</th>{head}<th>색·위치</th><th>메모</th></tr></thead>
+<tbody>{''.join(rows)}</tbody></table></body></html>"""
+    with open(path, "w", encoding="utf-8") as f: f.write(doc)
 
 # ───────────── Windows 자동 타이핑 ─────────────
 def typer():
@@ -178,11 +281,11 @@ def typer():
 
     return char, english_layout, corner
 
-def run_type(stage, start, delay):
+def run_type(D, stage, start, delay):
     if os.name != "nt":
-        sys.exit("자동 입력은 Windows에서 dot2 onPC를 켠 상태로 실행하세요. (명령 목록만 보려면: python dot2_cues.py list)")
+        sys.exit("자동 입력은 Windows에서 dot2 onPC를 켠 상태로 실행하세요. (파일만 만들려면: python dot2_cues.py build)")
     char, english_layout, corner = typer()
-    rows = [r for r in numbered(stage1() if stage == 1 else stage2()) if r[0] is not None]
+    rows = [r for r in numbered(stage1(D) if stage == 1 else stage2(D)) if r[0] is not None]
     total = rows[-1][0]
     print(f"{stage}단계: 총 {total}줄. {start}번째 줄부터 입력합니다.")
     print("지금 dot2 onPC의 명령줄(Command Line)을 한 번 클릭해 두세요. 5초 뒤 시작합니다.")
@@ -202,22 +305,34 @@ def run_type(stage, start, delay):
         if kind == "name": wait = 0.7
         time.sleep(wait)
     print(f"\n{stage}단계 완료.")
-    if stage == 1: print("Group 풀에서 그룹 수를 확인하세요:", ", ".join(f"{g}번 {EXPECTED[g]}대" for g in EXPECTED))
-    else: print("Cues 창에서 큐 0.5~14와 12.5를 확인하고, 12.5의 Trig를 Follow로 바꾼 뒤 쇼를 저장하세요.")
+    if stage == 1:
+        print("Group 풀에서 대수를 확인하세요:", ", ".join(f"{g['name']} {g['expected']}" for g in D["groups"] if g["expected"]))
+    else:
+        follow = [c["no"] for c in D["cues"] if c["trig"] == "Follow"]
+        print(f"Cues 창에서 큐 {D['cues'][0]['no']}~{D['cues'][-1]['no']}를 확인하세요."
+              + (f" 큐 {', '.join(follow)}의 Trig를 Follow로 바꾼 뒤" if follow else "") + " 쇼를 저장하세요.")
 
 def main():
-    ap = argparse.ArgumentParser(description="dot2 조명 큐 자동 입력기")
-    ap.add_argument("mode", choices=["list", "type"])
+    ap = argparse.ArgumentParser(description="dot2 조명 큐 파일 생성기")
+    ap.add_argument("mode", choices=["build", "check", "type", "list"])
     ap.add_argument("stage", nargs="?", type=int, choices=[1, 2])
     ap.add_argument("--from", dest="start", type=int, default=1)
     ap.add_argument("--delay", type=float, default=0.03, help="글자 사이 간격(초). 글자가 빠지면 0.06으로")
     a = ap.parse_args()
-    here = os.path.dirname(os.path.abspath(__file__))
-    if a.mode == "list":
-        print(write_list(os.path.join(here, "dot2_commands.txt")))
+    try:
+        D = load()
+    except CueFileError as ex:
+        print("큐 파일에 고칠 곳이 있습니다:\n" + str(ex)); sys.exit(1)
+    n1 = len([r for r in numbered(stage1(D)) if r[0]]); n2 = len([r for r in numbered(stage2(D)) if r[0]])
+    if a.mode == "check":
+        print(f"이상 없음 · 장비 {len(D['patch'])}대, 그룹 {len(D['groups'])}개, 프리셋 {len(D['presets'])}개, 큐 {len(D['cues'])}개 (명령 {n1}+{n2}줄)")
+    elif a.mode in ("build", "list"):
+        write_commands(D, os.path.join(HERE, "dot2_commands.txt"))
+        write_sheet(D, os.path.join(HERE, "cue_sheet.html"))
+        print(f"만들었습니다 · dot2_commands.txt (1단계 {n1}줄, 2단계 {n2}줄), cue_sheet.html (큐 {len(D['cues'])}개)")
     else:
         if not a.stage: ap.error("type 다음에 1 또는 2를 쓰세요")
-        run_type(a.stage, a.start, a.delay)
+        run_type(D, a.stage, a.start, a.delay)
 
 if __name__ == "__main__":
     main()
