@@ -29,16 +29,12 @@ OUT = os.path.join(ROOT, "audio_ml")
 
 # (큐 id, 출력 파일명, 엔진, 길이(초), 프롬프트, 목표 RMS dBFS)
 JOBS = [
-    ("0",  "00_house",    "music", 20, "gentle playful office comedy background music, celesta and soft piano, light pizzicato, 96 bpm, C major, calm lobby music, no drums", -22),
-    ("1",  "01_opening",  "music", 16, "bright cheerful comedy musical opening, ukulele strumming, glockenspiel melody, whistling, light shaker and claps, 132 bpm, C major, quirky and upbeat", -20),
-    ("2",  "03_ring",     "sfx",    5, "modern mobile phone ringtone, marimba melody, ringing", -19),
-    ("3",  "04_hangup",   "sfx",    3, "telephone busy tone beeping after the call ends", -21),
-    ("4",  "05_ringback", "sfx",    6, "telephone ringback tone, calling, waiting for answer", -21),
-    ("5",  "06_ars",      "sfx",    2, "two note automated phone message notification chime", -19),
-    ("6",  "07_recheck",  "music",  4, "dramatic comedic dun dun dunnn orchestral sting, brass and strings, timpani roll", -18),
-    ("7",  "08_jingle",   "music",  5, "short spooky but playful transition sting, harpsichord and pizzicato strings descending chromatically, ends with a timpani hit", -18),
-    ("9",  "09_chime",    "sfx",    4, "four note public address announcement chime ding dong, school intercom", -19),
-    ("10", "10_curtain",  "music", 28, "joyful energetic curtain call finale for a comedy musical, full band with trumpets, ukulele, drums, glockenspiel, 144 bpm, C major, big ending", -20),
+    ("0",  "00_house_suite",  "music", 30, "eerie haunted music box waltz, detuned celesta, low string cluster drone, creaking, wind, D minor, slow, spooky but not loud", -22),
+    ("1",  "03_ring",     "sfx",    5, "modern mobile phone ringtone, marimba melody, ringing", -19),
+    ("2",  "04_hangup",   "sfx",    3, "telephone busy tone beeping after the call ends", -21),
+    ("3",  "05_ringback", "sfx",    6, "telephone ringback tone, calling, waiting for answer", -21),
+    ("5",  "09_chime",    "sfx",    4, "four note public address announcement chime ding dong, school intercom", -19),
+    ("6",  "10_curtain",  "music", 28, "joyful energetic curtain call finale for a comedy musical, full band with trumpets, ukulele, drums, glockenspiel, 144 bpm, C major, big ending", -20),
 ]
 
 def level(x, db):

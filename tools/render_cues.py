@@ -698,9 +698,9 @@ def _xfade(chunks, fade=2.5):
         out = np.vstack([out[:-n], mid, c[n:]])
     return out.astype(np.float32)
 
-def _eerie_lobby():
-    """모음곡 1: 저승관리청 로비 — 스산하게. 음이 나간 오르골 왈츠 아래 낮은 현 클러스터, 바람, 삐걱임"""
-    x = _waltz_lobby(32, 76, detune=-650)
+def _eerie_lobby(key=0, bpm=76, detune=-650):
+    """저승관리청 로비 — 스산하게. 음이 나간 오르골 왈츠 아래 낮은 현 클러스터, 바람, 삐걱임"""
+    x = _waltz_lobby(32, bpm, key, detune=detune)
     dur = len(x) / SR
     s = Score(60).prog(4, 44, 95, 64, 90).prog(1, 43, 90, 64, 80)
     for b0 in range(0, int(dur) - 4, 12):
@@ -714,55 +714,43 @@ def _eerie_lobby():
     return y
 
 def house_suite():
-    """관객 입장 음악 약 5분: 저승관리청의 여러 얼굴
-    로비 왈츠 → 행정 업무 행진 → 삼도천 지하철 → 살아 있는 동안(피아노) → 저승사자 출장(스윙) → 환생 대기번호(왈츠 재현)"""
+    """관객 입장 음악 약 5분 — 처음부터 끝까지 으스스하게
+    음이 나간 로비 왈츠 → 저승 오피스 왈츠(오르골 선율) → 삼도천 지하철(드론·철길) → 더 낮고 느린 로비 왈츠"""
     def norm(x, db=-22):
         r = np.sqrt(np.mean(x.astype(np.float64) ** 2)) + 1e-9
         return (x * (10 ** (db / 20) / r)).astype(np.float32)
     lobby = norm(_eerie_lobby(), -22)
-    march = norm(_bureau_march(32, 112), -21)
+    office = underworld_office(); office = norm(np.vstack([office] * 3), -22)
     sub = norm(_subway(60), -23)
-    pno = piano_theme(); pno = norm(np.vstack([pno, pno]), -23)
-    reap = norm(_reaper_trip(4), -21)
-    rein = norm(_reincarnation(24), -22)
+    deep = norm(_eerie_lobby(key=-2, bpm=70, detune=-900), -23)
     def tail(x, keep=1.2):                                                   # 구간 끝 잔향 꼬리를 잘라 무음 공백 방지
         i = np.where(np.max(np.abs(x), 1) > 10 ** (-45 / 20))[0][-1]
         return x[:min(len(x), i + int(keep * SR))]
-    out = _xfade([tail(c) for c in (lobby, march, sub, pno, reap)] + [rein], 2.5)
+    out = _xfade([tail(lobby), office, tail(sub), deep], 3.0)
     idx = np.where(np.max(np.abs(out), 1) > 10 ** (-55 / 20))[0]          # 끝 무음 정리 (반복 시 공백 최소화)
     out = out[:idx[-1] + int(1.5 * SR)]
-    n = int(1.0 * SR); out[-n:] *= np.linspace(1, 0, n)[:, None]
+    n = int(3.0 * SR); out[-n:] *= np.linspace(1, 0, n)[:, None]
     return out
 
 # ───────────────────────── 큐 목록 (2026.11.08 대본 형광펜 표시 기준) ─────────────────────────
 # type: audio | stop      fadeOthers: GO 시 재생 중인 다른 큐를 몇 초에 걸쳐 페이드아웃
-# 이전 34큐 버전은 git 기록(c0e548c)에 있습니다.
+# 이전 34큐 버전은 git 기록(c0e548c), 16큐 버전은 b1bd4dc에 있습니다.
 CUES = [
-    dict(id="0",  scene="프리쇼", title="관객 입장 음악 (약 5분)", timing="관객 입장 시간 · 조명 프리셋", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
-         note="저승관리청 모음곡: 스산한 로비 → 행정 업무 → 삼도천 지하철 → 살아 있는 동안 → 저승사자 출장 → 환생 대기번호"),
-    dict(id="1",  scene="1장", title="음악1 · 스산한 저승 오피스 왈츠", timing="입장 음악 F.O · 조명 fade out → 직원들 등장, 서류 정리 (주인공 제외)", file="01_underworld_office", gen=underworld_office, loop=True, fadeOthers=4,
-         note="또렷한 첼레스타·오르골 선율의 단조 왈츠, 아래에 낮은 현·테레민·시계 소리. 반복되므로 다음 큐로 넘김"),
-    dict(id="1B", scene="1장", title="주인공 센터 · 밝은 음악", timing="주인공이 센터로 나올 때 (\"여러분!!!\" 직전)", file="01_opening", gen=opening, fadeOthers=1.5,
-         note="스산한 음악에서 밝은 음악으로 반전. 대사가 시작되면 볼륨을 낮춤"),
-    dict(id="2",  scene="1장", title="휴대전화 벨소리 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
-         note="음악 off 후 벨소리 (대본 메모)"),
-    dict(id="2B", scene="1장", title="벨소리 정지", timing="주인공 \"여보세요?\" 직전 (받는 순간)", type="stop", fade=0.1,
-         note="이어지는 인사담당자 (전화) 대사는 녹음 파일 또는 무대 뒤 마이크 + 전화 음색 EQ"),
-    dict(id="3",  scene="1장", title="통화 종료음", timing="지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)", file="04_hangup", gen=busy_tone),
-    dict(id="4",  scene="2장", title="통화 발신음", timing="지문 '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.'", file="05_ringback", gen=ringback, loop=True, vol=0.8),
-    dict(id="4B", scene="2장", title="발신음 정지", timing="팀장 \"감사팀장님 오랜만이에요.\" 직전 (연결되는 순간)", type="stop", fade=0.1),
-    dict(id="5",  scene="3장", title="녹음 메시지 신호음", timing="지문 '녹음된 메세지가 재생된다' (3장 시작, 암전 중)", file="06_ars", gen=ars,
-         note="이어서 인사담당자 메시지: 배우 녹음 파일로 교체하거나 무대 뒤 마이크 + 전화 음색 EQ"),
-    dict(id="6",  scene="3장", title="명부 재확인 스팅", timing="\"…저였어요!!!(명부를 다시 확인한다.)\"", file="07_recheck", gen=dundun),
-    dict(id="7",  scene="3→4장", title="4장 전환 음악", timing="\"(머리를 감싼다.)\" → 4장 시작", file="08_jingle", gen=jingle),
-    dict(id="8",  scene="4장", title="휴대전화 벨소리 (크게)", timing="지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)", file="03_ring", loop=True, vol=1.0),
-    dict(id="8B", scene="4장", title="벨소리 정지", timing="\"(전화 받음.) 여보세요?\"", type="stop", fade=0.1,
+    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 5분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
+         note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철 → 더 낮은 로비 왈츠. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
+    dict(id="1",  scene="1장", title="전화벨 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
+         note="음악이 남아 있으면 1초에 걸쳐 꺼짐"),
+    dict(id="1B", scene="1장", title="전화벨 정지 (받음)", timing="주인공 \"여보세요?\" 직전", type="stop", fade=0.1),
+    dict(id="2",  scene="1장", title="전화 끊김", timing="지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)", file="04_hangup", gen=busy_tone),
+    dict(id="3",  scene="2장", title="감사팀장 전화 신호 (발신음)", timing="지문 '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.'", file="05_ringback", gen=ringback, loop=True, vol=0.8),
+    dict(id="3B", scene="2장", title="신호 정지 (연결)", timing="팀장 \"감사팀장님 오랜만이에요.\" 직전", type="stop", fade=0.1),
+    dict(id="4",  scene="4장", title="벨소리 (인사과 전화)", timing="지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)", file="03_ring", loop=True, vol=1.0),
+    dict(id="4B", scene="4장", title="벨소리 정지 (받음)", timing="\"(전화 받음.) 여보세요?\"", type="stop", fade=0.1,
          note="인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
-    dict(id="9",  scene="8장", title="방송음 (사내 방송 차임)", timing="인사담당자 \"(방송) 긴급 공지입니다…\" 직전", file="09_chime", gen=chime,
+    dict(id="5",  scene="8장", title="긴급공지 방송 (차임)", timing="인사담당자 \"(방송) 긴급 공지입니다…\" 직전", file="09_chime", gen=chime,
          note="차임 끝나고 방송 대사: 무대 뒤 마이크 + 확성기 음색 EQ"),
-    dict(id="10", scene="9장", title="밝은 음악 · 커튼콜", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain, fadeOthers=1,
-         note="\"하나, 둘! 감사합니다!!!\" · 암전 뒤 인사가 끝날 때까지 이어짐 (마지막 화음은 시작 약 27초 뒤)"),
-    dict(id="11", scene="공연 후", title="퇴장 음악", timing="커튼콜 인사 후 하우스 조명", file="00_house_suite", loop=True, vol=0.6, fadeOthers=4, fadeIn=3),
+    dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain, fadeOthers=1,
+         note="\"하나, 둘! 감사합니다!!!\" · 인사가 끝날 때까지 이어짐 (마지막 화음은 시작 약 27초 뒤)"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
