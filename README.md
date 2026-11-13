@@ -10,6 +10,7 @@ cue_package/
 ├─ tools/
 │   ├─ render_cues.py  ← audio/ 음원을 다시 만드는 Python 스크립트
 │   └─ generate_ml.py  ← (선택) ML 모델로 음원을 새로 생성
+├─ lighting/           ← 조명 큐: MA dot2 자동 입력 스크립트 (lighting/README.md 참고)
 └─ README.md
 ```
 

@@ -1,0 +1,382 @@
+# dot2 명령 목록 — dot2_cues.py가 만든 파일입니다. 손으로 입력할 때도 이 순서대로 쓰면 됩니다.
+# [이름창] 줄은 앞 줄(Label)을 입력하면 뜨는 이름 입력 창에 넣는 글자입니다.
+
+########## 1단계 — 패치 주소 + 그룹 ##########
+
+# 1단계: 패치 주소 지정
+   1  Assign Fixture 101 At DMX 2.96
+   2  Assign Fixture 102 At DMX 2.116
+   3  Assign Fixture 103 At DMX 2.135
+   4  Assign Fixture 104 At DMX 2.154
+   5  Assign Fixture 105 At DMX 2.173
+   6  Assign Fixture 106 At DMX 2.1
+   7  Assign Fixture 107 At DMX 2.20
+   8  Assign Fixture 108 At DMX 2.39
+   9  Assign Fixture 109 At DMX 2.58
+  10  Assign Fixture 110 At DMX 2.77
+  11  Assign Fixture 201 At DMX 2.273
+  12  Assign Fixture 202 At DMX 2.291
+  13  Assign Fixture 203 At DMX 2.309
+  14  Assign Fixture 204 At DMX 2.327
+  15  Assign Fixture 205 At DMX 2.201
+  16  Assign Fixture 206 At DMX 2.219
+  17  Assign Fixture 207 At DMX 2.237
+  18  Assign Fixture 208 At DMX 2.255
+  19  Assign Fixture 301 At DMX 2.350
+  20  Assign Fixture 302 At DMX 2.353
+  21  Assign Fixture 303 At DMX 2.356
+  22  Assign Fixture 304 At DMX 2.359
+  23  Assign Fixture 305 At DMX 2.362
+  24  Assign Fixture 306 At DMX 2.365
+  25  Assign Fixture 307 At DMX 2.366
+  26  Assign Fixture 308 At DMX 2.367
+  27  Assign Fixture 309 At DMX 2.368
+  28  Assign Fixture 310 At DMX 2.369
+  29  Assign Fixture 1 At DMX 1.1
+  30  Assign Fixture 2 At DMX 1.2
+  31  Assign Fixture 3 At DMX 1.3
+  32  Assign Fixture 4 At DMX 1.4
+  33  Assign Fixture 5 At DMX 1.5
+  34  Assign Fixture 6 At DMX 1.6
+  35  Assign Fixture 13 At DMX 1.13
+  36  Assign Fixture 14 At DMX 1.14
+  37  Assign Fixture 15 At DMX 1.15
+  38  Assign Fixture 16 At DMX 1.16
+  39  Assign Fixture 17 At DMX 1.17
+  40  Assign Fixture 18 At DMX 1.18
+  41  Assign Fixture 19 At DMX 1.19
+  42  Assign Fixture 20 At DMX 1.20
+  43  Assign Fixture 21 At DMX 1.21
+  44  Assign Fixture 22 At DMX 1.22
+  45  Assign Fixture 23 At DMX 1.23
+  46  Assign Fixture 24 At DMX 1.24
+  47  Assign Fixture 26 At DMX 1.26
+  48  Assign Fixture 28 At DMX 1.28
+  49  Assign Fixture 29 At DMX 1.29
+  50  Assign Fixture 32 At DMX 1.32
+  51  Assign Fixture 33 At DMX 1.33
+  52  Assign Fixture 34 At DMX 1.34
+  53  Assign Fixture 35 At DMX 1.35
+  54  Assign Fixture 36 At DMX 1.36
+  55  Assign Fixture 37 At DMX 1.37
+  56  Assign Fixture 501 At DMX 3.505
+  57  Assign Fixture 601 At DMX 3.347
+  58  Assign Fixture 602 At DMX 3.349
+  59  Assign Fixture 603 At DMX 3.351
+  60  Assign Fixture 604 At DMX 3.353
+  61  Assign Fixture 605 At DMX 3.355
+  62  Assign Fixture 606 At DMX 3.357
+  63  Assign Fixture 607 At DMX 3.359
+  64  Assign Fixture 608 At DMX 3.361
+  65  Assign Fixture 609 At DMX 3.363
+  66  Assign Fixture 611 At DMX 3.507
+  67  Assign Fixture 612 At DMX 3.508
+  68  Assign Fixture 613 At DMX 3.509
+  69  Assign Fixture 614 At DMX 3.510
+  70  Assign Fixture 615 At DMX 3.511
+  71  Assign Fixture 616 At DMX 3.512
+
+# 1단계: 그룹 저장 (값을 하나 넣어 선택을 닫아야 다음 선택이 새로 시작됩니다)
+  72  Fixture 201 Thru 208
+  73  Store Group 1
+  74  Label Group 1
+  75  [이름창] Spot
+  76  At 0
+  77  Fixture 101 Thru 110
+  78  Store Group 2
+  79  Label Group 2
+  80  [이름창] Wash
+  81  At 0
+  82  Fixture 1 Thru 6 + 13 Thru 18
+  83  Store Group 3
+  84  Label Group 3
+  85  [이름창] Front
+  86  At 0
+  87  Fixture 19 Thru 24
+  88  Store Group 4
+  89  Label Group 4
+  90  [이름창] Top
+  91  At 0
+  92  Fixture 26 + 28 + 29 + 32 Thru 36
+  93  Store Group 5
+  94  Label Group 5
+  95  [이름창] Back
+  96  At 0
+  97  Fixture 301 Thru 310 + 37
+  98  Store Group 6
+  99  Label Group 6
+ 100  [이름창] BG
+ 101  At 0
+ 102  Fixture 401 Thru 404
+ 103  Store Group 7
+ 104  Label Group 7
+ 105  [이름창] Blinder
+ 106  At 0
+ 107  Fixture 601 Thru 616
+ 108  Store Group 8
+ 109  Label Group 8
+ 110  [이름창] House
+ 111  At 0
+ 112  Fixture 501
+ 113  Store Group 9
+ 114  Label Group 9
+ 115  [이름창] Fog
+ 116  At 0
+ 117  Fixture 202
+ 118  Store Group 10
+ 119  Label Group 10
+ 120  [이름창] Spot Solo
+ 121  At 0
+ 122  Fixture 205 + 208
+ 123  Store Group 11
+ 124  Label Group 11
+ 125  [이름창] Spot Pair
+ 126  At 0
+
+########## 2단계 — 큐 ##########
+
+# 큐 0.5 Preshow
+   1  Group 1 At 0
+   2  Group 2 At 0
+   3  Group 3 At 0
+   4  Group 4 At 0
+   5  Group 5 At 0
+   6  Group 6 At 15
+   7  Group 7 At 0
+   8  Group 8 At 100
+   9  Group 6 At Preset 4.4
+  10  Store Cue 0.5 Fade 0
+  11  Label Cue 0.5
+  12  [이름창] Preshow
+
+# 큐 1 House Out
+  13  Group 1 At 0
+  14  Group 2 At 0
+  15  Group 3 At 0
+  16  Group 4 At 0
+  17  Group 5 At 0
+  18  Group 6 At 0
+  19  Group 7 At 0
+  20  Group 8 At 0
+  21  Store Cue 1 Fade 5
+  22  Label Cue 1
+  23  [이름창] House Out
+
+# 큐 2 1 Office
+  24  Group 1 At 0
+  25  Group 2 At 50
+  26  Group 3 At 70
+  27  Group 4 At 60
+  28  Group 5 At 0
+  29  Group 6 At 30
+  30  Group 7 At 0
+  31  Group 8 At 0
+  32  Group 2 At Preset 4.1
+  33  Group 6 At Preset 4.1
+  34  Store Cue 2 Fade 2
+  35  Label Cue 2
+  36  [이름창] 1 Office
+
+# 큐 3 2 Meeting
+  37  Group 1 At 0
+  38  Group 2 At 50
+  39  Group 3 At 80
+  40  Group 4 At 60
+  41  Group 5 At 0
+  42  Group 6 At 30
+  43  Group 7 At 0
+  44  Group 8 At 0
+  45  Group 2 At Preset 4.2
+  46  Group 6 At Preset 4.2
+  47  Store Cue 3 Fade 3
+  48  Label Cue 3
+  49  [이름창] 2 Meeting
+
+# 큐 4 3-4 BO
+  50  Group 1 At 0
+  51  Group 2 At 0
+  52  Group 3 At 0
+  53  Group 4 At 0
+  54  Group 5 At 0
+  55  Group 6 At 0
+  56  Group 7 At 0
+  57  Group 8 At 0
+  58  Store Cue 4 Fade 1
+  59  Label Cue 4
+  60  [이름창] 3-4 BO
+
+# 큐 5 4 Office
+  61  Group 1 At 0
+  62  Group 2 At 50
+  63  Group 3 At 70
+  64  Group 4 At 60
+  65  Group 5 At 0
+  66  Group 6 At 30
+  67  Group 7 At 0
+  68  Group 8 At 0
+  69  Group 2 At Preset 4.1
+  70  Group 6 At Preset 4.1
+  71  Store Cue 5 Fade 1.5
+  72  Label Cue 5
+  73  [이름창] 4 Office
+
+# 큐 6 7 Audit
+  74  Group 1 At 0
+  75  Group 2 At 30
+  76  Group 3 At 55
+  77  Group 4 At 30
+  78  Group 5 At 40
+  79  Group 6 At 20
+  80  Group 7 At 0
+  81  Group 8 At 0
+  82  Group 11 At 60
+  83  Group 2 At Preset 4.3
+  84  Group 6 At Preset 4.4
+  85  Group 11 At Preset 4.3
+  86  Group 11 At Preset 2.3
+  87  Store Cue 6 Fade 4
+  88  Label Cue 6
+  89  [이름창] 7 Audit
+
+# 큐 7 7 Spot
+  90  Group 1 At 0
+  91  Group 2 At 10
+  92  Group 3 At 10
+  93  Group 4 At 0
+  94  Group 5 At 0
+  95  Group 6 At 10
+  96  Group 7 At 0
+  97  Group 8 At 0
+  98  Group 10 At 70
+  99  Group 10 At Preset 4.3
+ 100  Group 10 At Preset 2.2
+ 101  Store Cue 7 Fade 5
+ 102  Label Cue 7
+ 103  [이름창] 7 Spot
+
+# 큐 8 7 BO
+ 104  Group 1 At 0
+ 105  Group 2 At 0
+ 106  Group 3 At 0
+ 107  Group 4 At 0
+ 108  Group 5 At 0
+ 109  Group 6 At 0
+ 110  Group 7 At 0
+ 111  Group 8 At 0
+ 112  Store Cue 8 Fade 3
+ 113  Label Cue 8
+ 114  [이름창] 7 BO
+
+# 큐 9 8 Office
+ 115  Group 1 At 0
+ 116  Group 2 At 50
+ 117  Group 3 At 70
+ 118  Group 4 At 60
+ 119  Group 5 At 0
+ 120  Group 6 At 30
+ 121  Group 7 At 0
+ 122  Group 8 At 0
+ 123  Group 2 At Preset 4.1
+ 124  Group 6 At Preset 4.1
+ 125  Store Cue 9 Fade 2
+ 126  Label Cue 9
+ 127  [이름창] 8 Office
+
+# 큐 10 9 Full
+ 128  Group 1 At 0
+ 129  Group 2 At 60
+ 130  Group 3 At 85
+ 131  Group 4 At 70
+ 132  Group 5 At 50
+ 133  Group 6 At 40
+ 134  Group 7 At 0
+ 135  Group 8 At 0
+ 136  Group 2 At Preset 4.1
+ 137  Group 6 At Preset 4.1
+ 138  Store Cue 10 Fade 10
+ 139  Label Cue 10
+ 140  [이름창] 9 Full
+
+# 큐 11 CC Bright
+ 141  Group 1 At 100
+ 142  Group 2 At 100
+ 143  Group 3 At 100
+ 144  Group 4 At 100
+ 145  Group 5 At 100
+ 146  Group 6 At 100
+ 147  Group 7 At 0
+ 148  Group 8 At 0
+ 149  Group 1 At Preset 4.5
+ 150  Group 2 At Preset 4.5
+ 151  Group 6 At Preset 4.5
+ 152  Group 1 At Preset 2.4
+ 153  Store Cue 11 Fade 2
+ 154  Label Cue 11
+ 155  [이름창] CC Bright
+
+# 큐 12 CC Blinder
+ 156  Group 1 At 100
+ 157  Group 2 At 100
+ 158  Group 3 At 100
+ 159  Group 4 At 100
+ 160  Group 5 At 100
+ 161  Group 6 At 100
+ 162  Group 7 At 100
+ 163  Group 8 At 0
+ 164  Store Cue 12 Fade 0
+ 165  Label Cue 12
+ 166  [이름창] CC Blinder
+
+# 큐 12.5 CC BO
+ 167  Group 1 At 0
+ 168  Group 2 At 0
+ 169  Group 3 At 0
+ 170  Group 4 At 0
+ 171  Group 5 At 0
+ 172  Group 6 At 0
+ 173  Group 7 At 0
+ 174  Group 8 At 0
+ 175  Store Cue 12.5 Fade 0
+ 176  Label Cue 12.5
+ 177  [이름창] CC BO
+
+# 큐 13 Bow
+ 178  Group 1 At 100
+ 179  Group 2 At 100
+ 180  Group 3 At 100
+ 181  Group 4 At 100
+ 182  Group 5 At 100
+ 183  Group 6 At 100
+ 184  Group 7 At 0
+ 185  Group 8 At 0
+ 186  Group 1 At Preset 4.5
+ 187  Group 2 At Preset 4.5
+ 188  Group 6 At Preset 4.5
+ 189  Group 1 At Preset 2.4
+ 190  Store Cue 13 Fade 1
+ 191  Label Cue 13
+ 192  [이름창] Bow
+
+# 큐 14 House In
+ 193  Group 1 At 0
+ 194  Group 2 At 0
+ 195  Group 3 At 0
+ 196  Group 4 At 0
+ 197  Group 5 At 0
+ 198  Group 6 At 0
+ 199  Group 7 At 0
+ 200  Group 8 At 100
+ 201  Store Cue 14 Fade 5
+ 202  Label Cue 14
+ 203  [이름창] House In
+
+########## 프리셋 (2단계 전에 직접 저장) ##########
+Preset 4.1  Office   색: 차가운 화이트 + 연보라 (Wash·BG·Spot)
+Preset 4.2  Meeting  색: 회의실 웜 화이트 (Wash·BG)
+Preset 4.3  Amber    색: 앰버 (Wash·Spot)
+Preset 4.4  Blue     색: 배경 블루 (BG)
+Preset 4.5  Curtain  색: 커튼콜 멀티 (Wash·BG·Spot)
+Preset 2.1  DownC    위치: 다운센터 독백 (Spot)
+Preset 2.2  Desk     위치: 주인공 책상 (Spot Solo)
+Preset 2.3  Audit    위치: 감사팀장 자리 (Spot Pair)
+Preset 2.4  Sweep    위치: 커튼콜 객석 쪽 (Spot)
