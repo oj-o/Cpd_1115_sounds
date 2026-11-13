@@ -15,7 +15,7 @@ lighting/
 
 ## 준비물
 
-- Windows 노트북에 **dot2 onPC**를 설치합니다. 버전은 극장 콘솔과 같게 맞춥니다. 버전이 다르면 쇼 파일을 열지 못할 수 있습니다.
+- Windows 노트북에 **dot2 onPC**를 설치합니다. 버전은 극장 콘솔(dot2 core 2대, fader wing 2대, 2048ch = 4유니버스)과 같게 맞춥니다. 버전이 다르면 쇼 파일을 열지 못할 수 있습니다.
 - **Python 3**를 설치합니다. 설치 화면에서 "Add Python to PATH"를 체크하세요. 추가 패키지는 필요 없습니다.
 - 이 `lighting` 폴더를 노트북에 복사합니다.
 
@@ -31,14 +31,14 @@ Setup → Patch & Fixture Schedule → **Add New Fixtures**에서 아래 묶음�
 | --- | --- | --- | --- | --- |
 | 1 | Prolights Diamond19 (모드는 19ch 이하) | 10 | 101 | Wash |
 | 2 | Chauvet Rogue R2X Spot (모드는 18ch 이하) | 8 | 201 | Spot |
-| 3 | LED 파 3ch (Generic RGB 또는 실제 기종) | 5 | 301 | LED |
+| 3 | LED 파 3ch (Generic RGB, 극장 장비표상 EK light ORB-300으로 추정) | 5 | 301 | LED |
 | 4 | Dimmer | 5 | 306 | BG1ch |
 | 5 | Dimmer | 6 | 1 | S1 |
 | 6 | Dimmer | 12 | 13 | S2S3 |
 | 7 | Dimmer | 1 | 26 | S4 |
 | 8 | Dimmer | 2 | 28 | S4 |
 | 9 | Dimmer | 6 | 32 | S5S6 |
-| 10 | Dimmer | 4 | 401 | Blinder |
+| 10 | Dimmer (블라인더 4구 650W, 디머 구동) | 4 | 401 | Blinder |
 | 11 | Dimmer | 1 | 501 | Fog |
 | 12 | Dimmer | 9 | 601 | HouseLED |
 | 13 | Dimmer | 6 | 611 | HouseDim |
@@ -49,7 +49,7 @@ Setup → Patch & Fixture Schedule → **Add New Fixtures**에서 아래 묶음�
 1. `1_패치_그룹_자동입력.bat`을 더블클릭합니다.
 2. 5초 안에 dot2 onPC 화면의 **명령줄(Command Line)을 한 번 클릭**합니다.
 3. 자동 입력이 끝나면 Group 풀에서 대수를 확인합니다. 정상이라면 Spot 8, Wash 10, Front 12, Top 6, Back 8, BG 11, Blinder 4, House 15, Fog 1, Spot Solo 1, Spot Pair 2입니다.
-4. Patch 창에서 주소도 확인합니다. 블라인더(401~404)는 주소가 정해지지 않아 비워 두었습니다.
+4. Patch 창에서 주소도 확인합니다. 블라인더(401~404)는 디머(Sensor3)로 켜는 재래식 장비인데 회로 번호가 도면에 없어 비워 두었습니다. 극장에서 회로를 확인한 뒤 `Assign Fixture 401 At DMX 1.(회로번호)` 형식으로 4대를 패치하세요.
 5. 끝나면 **Clear를 두 번** 눌러 선택과 값을 지웁니다.
 
 ### 4. 프리셋 9개 저장 (손으로, 약 10분)

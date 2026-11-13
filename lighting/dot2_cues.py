@@ -24,7 +24,7 @@ FIXTURES = (
     [(301 + i, f"2.{a}") for i, a in enumerate([350, 353, 356, 359, 362])] +     # LED 파 3ch SUS6
     [(306 + i, f"2.{a}") for i, a in enumerate([365, 366, 367, 368, 369])] +     # 1ch 장비 SUS6/SUS4
     [(d, f"1.{d}") for d in list(range(1, 7)) + list(range(13, 25)) + [26, 28, 29] + list(range(32, 38))] +  # 디머 회로
-    [(401 + i, None) for i in range(4)] +                                         # 블라인더 (주소 확인 후 수동 패치)
+    [(401 + i, None) for i in range(4)] +                                         # 블라인더 4구 650W, Sensor3 디머 구동 (회로 확인 후 수동 패치)
     [(501, "3.505")] +                                                            # 포그 JEM ZR35
     [(601 + i, f"3.{347 + 2 * i}") for i in range(9)] +                           # 하우스 LED 파 2ch
     [(611 + i, f"3.{507 + i}") for i in range(6)]                                 # 하우스 디머
