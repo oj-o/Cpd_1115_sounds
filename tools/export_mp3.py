@@ -29,6 +29,7 @@ with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(out, "w", zipfile.ZIP
         extra = " · 반복" if c.get("loop") else ""
         lines += [head + f"  → {name}  ({c.get('dur','?')}초{extra})", timing]
         if "녹음 대사:" in c.get("note", ""): lines.append("     " + c["note"].split(" · ")[0])
+        for l in c.get("lines", []): lines.append("       " + l)
     z.writestr("00_큐순서.txt", "\n".join(lines) + "\n")
 print(out, os.path.getsize(out) // 1024, "KB")
 print("\n".join(lines))
