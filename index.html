@@ -84,6 +84,10 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 .card .ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .time{font:13px var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.seek{position:relative;padding:7px 0;margin:-7px 0;cursor:pointer;touch-action:none}
+.seek:hover .bar,.seek.drag .bar{height:10px;border-radius:5px}
+.seek .tip{position:absolute;top:-16px;transform:translateX(-50%);font:11px var(--mono);color:var(--fg);background:var(--raise);border:1px solid var(--line);border-radius:4px;padding:0 4px;display:none;pointer-events:none}
+.seek.drag .tip{display:block}
 .bar i{display:block;height:100%;width:0;background:var(--go)}
 .card.fading .bar i{background:var(--warn)}
 .card.loop .bar i{background:var(--accent)}
@@ -115,7 +119,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.14i · 큐프1 새 녹음 4분할 · 17큐</span>
+    <span class="status">v2026.11.14k · 반복 없음 · 벨소리 3번 · 막대 탐색 · 16큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -145,7 +149,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
         <button class="btn" id="fadeAll" type="button">전체 페이드 (3초)</button>
         <button class="btn stop" id="stopAll" type="button">전체 정지</button>
       </div>
-      <div class="keys"><kbd>Space</kbd> GO · 소리가 나오는 중엔 일시정지·이어서 · <kbd>Shift</kbd>+<kbd>Space</kbd> 무조건 다음 큐 GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>P</kbd> 일시정지·이어서 · <kbd>F</kbd> 전체 페이드 · <kbd>3</kbd><kbd>5</kbd><kbd>0</kbd> 페이드 3·5·10초 선택 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생</div>
+      <div class="keys"><kbd>Space</kbd> GO · 소리가 나오는 중엔 일시정지·이어서 · <kbd>Shift</kbd>+<kbd>Space</kbd> 무조건 다음 큐 GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>P</kbd> 일시정지·이어서 · <kbd>F</kbd> 전체 페이드 · <kbd>3</kbd><kbd>5</kbd><kbd>0</kbd> 페이드 3·5·10초 선택 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생 · 재생 중 막대를 누르거나 끌면 위치 이동</div>
     </section>
     <section class="active" id="active"><p class="empty">재생 중인 큐가 없습니다.</p></section>
   </aside>
@@ -153,7 +157,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 
 <a class="lightlink" href="lighting/cue_maker.html" title="조명 큐 생성 · 비상 수동 조정 (새 탭)" target="_blank" rel="noopener">💡 조명 큐 생성 →</a>
 
-<script src="cues.js?v=20261114i"></script>
+<script src="cues.js?v=20261114k"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
@@ -325,11 +329,23 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     const c = r.cue, el = document.createElement("div");
     el.className = "card" + (c.loop ? " loop" : "");
     el.innerHTML = `<div class="row"><span class="id">${c.id}</span><span class="ttl">${c.title}</span><span class="time" data-t>0:00</span></div>
-      <div class="bar"><i></i></div>
+      <div class="seek" title="막대를 누르거나 끌어서 위치 이동"><div class="bar"><i></i></div><span class="tip"></span></div>
       <div class="row"><input type="range" min="0" max="100" value="${Math.round(r.base * 100)}" aria-label="큐 ${c.id} 볼륨">
       <button class="mini p" type="button" data-p>❚❚ 멈춤</button>${c.voice ? "" : `<button class="mini" type="button" data-f>페이드 ${fadeSec}s</button>`}<button class="mini x" type="button" data-s>정지</button></div>`;
     el.querySelector("input").oninput = e => { r.base = e.target.value / 100; apply(r); };
     el.querySelector("[data-p]").onclick = () => togglePause(r);
+    // 막대를 누르거나 끌어서 구간 탐색
+    const sk = el.querySelector(".seek"), tip = sk.querySelector(".tip");
+    const at = e => { const b = sk.getBoundingClientRect(), k = Math.min(1, Math.max(0, (e.clientX - b.left) / b.width)); return { k, x: k * b.width }; };
+    const seekTo = e => {
+      const d = r.audio.duration || r.cue.dur || 0; if (!d) return;
+      const { k, x } = at(e), t = Math.min(k * d, d - 0.05);
+      r.audio.currentTime = t; tip.style.left = x + "px"; tip.textContent = fmt(t);
+      sk.querySelector(".bar i").style.width = (100 * k) + "%";
+    };
+    sk.onpointerdown = e => { e.preventDefault(); sk.setPointerCapture(e.pointerId); sk.classList.add("drag"); seekTo(e); };
+    sk.onpointermove = e => { if (sk.classList.contains("drag")) seekTo(e); };
+    sk.onpointerup = sk.onpointercancel = e => { sk.classList.remove("drag"); };
     if (!c.voice) el.querySelector("[data-f]").onclick = () => stopRun(r, fadeSec);
     el.querySelector("[data-s]").onclick = () => stopRun(r, 0);
     return el;
