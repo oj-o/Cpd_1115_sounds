@@ -122,7 +122,7 @@ a.mini{text-decoration:none;display:inline-block}
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.14t · 4A 벨소리 제거 · 17큐</span>
+    <span class="status">v2026.11.14u · 4·4B 합침(페이드 없음) · 16큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -161,7 +161,7 @@ a.mini{text-decoration:none;display:inline-block}
 
 <a class="lightlink" href="lighting/cue_maker.html" title="조명 큐 생성 · 비상 수동 조정 (새 탭)" target="_blank" rel="noopener">💡 조명 큐 생성 →</a>
 
-<script src="cues.js?v=20261114t"></script>
+<script src="cues.js?v=20261114u"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
@@ -285,7 +285,7 @@ a.mini{text-decoration:none;display:inline-block}
   // GO 버튼 하나로 GO·일시정지·이어서:
   //  · 소리가 나오는 중이면 GO 버튼 = 일시정지 / 이어서 (입장 음악·엔딩·녹음·효과음 모두)
   //  · 소리가 끝나거나 F(페이드)·Esc로 끄면 다시 GO
-  //  · 예외: 다음 큐가 정지 큐(1B·3B·4B: 벨소리를 끄는 GO)이거나 겹쳐 나가는 큐(4A)면 GO
+  //  · 예외: 다음 큐가 정지 큐(1B·3B: 벨소리를 끄는 GO)이거나 겹쳐 나가는 큐(4A)면 GO
   const firesOver = n => n && (n.type === "stop" || n.over);
   function pauseTarget() {
     const r = lastRun;
@@ -329,7 +329,7 @@ a.mini{text-decoration:none;display:inline-block}
   function stopRun(r, sec = 0) {
     if (!running.has(r.uid)) return;
     if (r.paused) sec = 0;                                   // 멈춘 소리는 바로 끔
-    if (sec > 0 && r.cue.voice) return;                      // 녹음 음성은 페이드하지 않음 (끝까지 재생, 즉시 정지만 가능)
+    if (sec > 0 && (r.cue.voice || r.cue.noFade)) return;                      // 녹음 음성은 페이드하지 않음 (끝까지 재생, 즉시 정지만 가능)
     if (sec > 0) { r.fading = true; r.card.classList.add("fading"); ramp(r, 0, sec, () => kill(r)); drawGo(); }
     else kill(r);
   }
@@ -401,7 +401,7 @@ a.mini{text-decoration:none;display:inline-block}
     el.innerHTML = `<div class="row"><span class="id">${c.id}</span><span class="ttl">${c.title}</span><span class="time" data-t>0:00</span></div>
       <div class="seek" title="막대를 누르거나 끌어서 위치 이동"><div class="bar"><i></i></div><span class="tip"></span></div>
       <div class="row"><input type="range" min="0" max="100" value="${Math.round(r.base * 100)}" aria-label="큐 ${c.id} 볼륨">
-      <button class="mini p" type="button" data-p>❚❚ 멈춤</button>${c.voice ? "" : `<button class="mini" type="button" data-f>페이드 ${fadeSec}s</button>`}<button class="mini x" type="button" data-s>정지</button></div>`;
+      <button class="mini p" type="button" data-p>❚❚ 멈춤</button>${c.voice || c.noFade ? "" : `<button class="mini" type="button" data-f>페이드 ${fadeSec}s</button>`}<button class="mini x" type="button" data-s>정지</button></div>`;
     el.querySelector("input").oninput = e => { r.base = e.target.value / 100; apply(r); };
     el.querySelector("[data-p]").onclick = () => togglePause(r);
     // 막대를 누르거나 끌어서 구간 탐색
@@ -416,7 +416,7 @@ a.mini{text-decoration:none;display:inline-block}
     sk.onpointerdown = e => { e.preventDefault(); sk.setPointerCapture(e.pointerId); sk.classList.add("drag"); seekTo(e); };
     sk.onpointermove = e => { if (sk.classList.contains("drag")) seekTo(e); };
     sk.onpointerup = sk.onpointercancel = e => { sk.classList.remove("drag"); };
-    if (!c.voice) el.querySelector("[data-f]").onclick = () => stopRun(r, fadeSec);
+    if (!(c.voice || c.noFade)) el.querySelector("[data-f]").onclick = () => stopRun(r, fadeSec);
     el.querySelector("[data-s]").onclick = () => stopRun(r, 0);
     return el;
   }
