@@ -438,6 +438,60 @@ def underworld_swing(mode="scene"):
     tm = theremin(th, bpm, o + 8, level=0.22 if cur else 0.18)
     return mix(len(x) / SR, [(0, x), (0, tm[:len(x)])])
 
+def cheerful_ending():
+    """커튼콜: 명랑하고 경쾌한 저승 엔딩곡 (스윙 아님) — 152bpm 2박 갤럽(쿵-짝)
+    공연 주제(C장조)를 피콜로·글로켄·트럼펫이 또박또박, 아코디언·튜바·스네어가 쿵짝,
+    중간에 오르간·테레민이 나오는 짧은 '저승 장난' 구간(E단조) → 다시 밝게, 조가 두 번 올라가고 큰 마무리"""
+    bpm = 152
+    s = Score(bpm).prog(0, 72, 92, 52, 40).prog(1, 58, 112, 64, 30).prog(2, 9, 100, 78, 40).prog(3, 21, 78, 40, 40) \
+                  .prog(4, 56, 96, 64, 45).prog(5, 13, 88, 88, 40).prog(6, 19, 66, 64, 80).prog(7, 61, 92, 64, 50).prog(9, 0, 100)
+    def galop(o, chords, kind):                                          # 쿵-짝 반주 (8분음표 곧게)
+        for j, ch in enumerate(chords):
+            b0 = o + j * 4; root = ch[0] - 24 if ch[0] >= 57 else ch[0] - 12
+            for b in range(4):
+                s.n(1, b0 + b, .45, root if b % 2 == 0 else root + 7, 108)
+                s.n(3, b0 + b + .5, .35, ch, 70)
+                s.n(9, b0 + b, .2, 36 if b % 2 == 0 else 38, 92 if b % 2 == 0 else 80)
+                s.n(9, b0 + b + .5, .1, 42, 55)
+            if kind == "full": s.n(7, b0 + 3.5, .4, [p - 12 for p in ch], 88)
+            if kind == "full": s.n(9, b0, .2, 54, 55)
+    def theme(o, k, kind):
+        chords = [[p + k for p in c] for c in MAIN_CH]
+        s.seq(2, MAIN_MEL, 98, o, k + 12 if kind == "light" else k)       # 글로켄
+        if kind != "light": s.seq(0, MAIN_MEL, 86, o, k + 12)              # 피콜로 한 옥타브 위
+        if kind == "full": s.seq(4, MAIN_MEL, 92, o, k - 12)               # 트럼펫
+        if kind != "light": s.seq(5, [(b + .5, .25, p + 7) for b, d, p in MAIN_MEL if d >= 1], 70, o, k)   # 실로폰 대답
+        galop(o, chords, kind)
+    def spooky(o):                                                         # 저승 장난: 오르간 + 테레민, 피치카토 같은 반주
+        ch = [[52, 55, 59], [51, 54, 59], [52, 55, 59], [47, 51, 54]] * 2
+        for j, c in enumerate(ch):
+            b0 = o + j * 4
+            s.n(6, b0, 3.8, [p - 12 for p in c], 52)
+            for b in range(4):
+                s.n(1, b0 + b, .3, c[0] - 12 if b % 2 == 0 else c[0] - 5, 96); s.n(3, b0 + b + .5, .25, c, 58)
+                s.n(9, b0 + b, .15, 76 if b % 2 == 0 else 77, 70)                # 우드블록 똑딱
+        s.seq(5, [(i * 2, 1, p) for i, p in enumerate([76, 79, 78, 75, 76, 71, 72, 71, 76, 79, 81, 83, 84, 83, 79, 76])], 80, o)
+        return [(o + 4, 4, 64), (o + 8, 4, 67), (o + 12, 3, 71), (o + 20, 4, 71), (o + 24, 6, 76)]
+    plan = [("T", 0, "light"), ("T", 0, "mid"), ("T", 0, "full"), ("S", 0, ""), ("T", 0, "full"),
+            ("T", 2, "mid"), ("T", 2, "full"), ("S", 2, ""), ("T", 2, "full"),
+            ("T", 4, "mid"), ("T", 4, "full"), ("S", 4, ""), ("T", 4, "full"), ("T", 4, "full")]
+    o = 0; th = []; prev = None
+    for sec, k, kind in plan:
+        if sec == "T": theme(o, k, kind)
+        else: th += [(b, d, p + k) for b, d, p in spooky(o)]
+        if prev is not None and prev != k:
+            for t in range(16): s.n(9, o - 2 + t * .125, .1, 38, 50 + t * 4)   # 조 바뀌기 전 스네어 롤
+        s.n(9, o, 2, 49, 100 if kind == "full" else 80); prev = k; o += 32
+    E = o; k = 4
+    for t in range(16): s.n(9, E - 2 + t * .125, .1, 38, 60 + t * 4)
+    s.n(2, E, 4, [84 + k, 88 + k, 91 + k], 115); s.n(0, E, 4, 96 + k, 110); s.n(4, E, 4, [72 + k, 76 + k, 79 + k], 115)
+    s.n(7, E, 4, [48 + k, 55 + k, 60 + k, 64 + k], 118); s.n(1, E, 4, 36 + k, 120); s.n(3, E, 4, [60 + k, 64 + k, 67 + k], 100)
+    s.n(9, E, 4, 49, 127); s.n(9, E, 4, 57, 120); s.n(9, E, .3, 36, 127)
+    th += [(E, 4, 84 + k)]
+    x = s.render(4)
+    tm = theremin(th, bpm, E + 8, level=0.2)
+    return mix(len(x) / SR, [(0, x), (0, tm[:len(x)])])
+
 def jingle():
     s = Score(120).prog(0, 6, 100, 50, 60).prog(1, 45, 110, 78, 60).prog(2, 47, 110).prog(3, 8, 80, 64, 70)
     s.seq(0, [(0, .5, 69), (.5, .5, 72), (1, .5, 71), (1.5, .5, 70), (2, .5, 69), (2.5, .5, 68), (3, 1, 64),
@@ -906,8 +960,8 @@ CUES = [
          note="배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)"),
     dict(id="6",  scene="9장", title="9장 장면 음악 · 경쾌한 저승 스윙 (약 5분, 반복)", timing="9장 시작: 전원 등장 '조명이 천천히 밝아진다.'", file="10_scene9_loop", gen=lambda: underworld_swing("scene"), mp3=True, loop=True, vol=0.5,
          note="116bpm 스윙: 저승사자 선율(클라리넷·실로폰, E단조) ↔ 공연 주제(첼레스타, G장조), 하프시코드·드럼 백비트·낮은 오르간·가끔 테레민 · 끝나면 처음부터 반복 · 볼륨 50% · 커튼콜 큐 6B가 2초에 걸쳐 끔"),
-    dict(id="6B", scene="커튼콜", title="커튼콜 · 경쾌한 저승 스윙 (약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=lambda: underworld_swing("curtain"), mp3=True, vol=0.5, fadeOthers=2, over=True,
-         note="\"하나, 둘! 감사합니다!!!\" · 144bpm 뮤트 트럼펫·실로폰·브라스·튜바, 조가 두 번 올라가고 큰 화음 + 테레민으로 끝 · 6번이 나오는 중에 GO하면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
+    dict(id="6B", scene="커튼콜", title="커튼콜 · 명랑한 저승 엔딩곡 (약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=cheerful_ending, post="acompressor=threshold=-20dB:ratio=3:attack=10:release=150,loudnorm=I=-18:TP=-1.5:LRA=7", mp3=True, vol=0.5, fadeOthers=2, over=True,
+         note="\"하나, 둘! 감사합니다!!!\" · 스윙 아닌 152bpm 쿵짝 갤럽: 공연 주제를 피콜로·글로켄·트럼펫이 또박또박, 아코디언·튜바·스네어 반주, 중간에 오르간·테레민 '저승 장난' 구간, 조가 두 번 올라가고 큰 화음으로 끝 · 6번이 나오는 중에 GO하면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
@@ -943,13 +997,13 @@ def main():
         wav = os.path.join(OUT, c["file"] + ".wav")
         wavfile.write(wav, SR, (np.clip(x, -1, 1) * 32767).astype(np.int16))
         if not c.get("loop") or c.get("mp3"):   # 단발 큐·긴 곡은 MP3, 짧은 루프 큐는 끊김 없는 WAV 유지
-            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-b:a', '256k' if c.get("mp3") else '320k', wav[:-4] + '.mp3'], check=True)
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav] + (['-af', c["post"], '-ar', '44100'] if c.get("post") else []) + ['-b:a', '256k' if c.get("mp3") else '320k', wav[:-4] + '.mp3'], check=True)
             os.remove(wav)
         meta[c["file"]] = round(len(x) / SR, 2)
         print(f'{c["id"]:>4}  {c["file"]:<18} {len(x)/SR:5.1f}s')
     cues = []
     for c in CUES:
-        d = {k: v for k, v in c.items() if k not in ("gen", "mp3")}
+        d = {k: v for k, v in c.items() if k not in ("gen", "mp3", "post")}
         if c.get("type") != "stop":
             d["type"] = "audio"
             d["src"] = f'audio/{c["file"]}.' + ("wav" if os.path.exists(os.path.join(OUT, c["file"] + ".wav")) else "mp3")
