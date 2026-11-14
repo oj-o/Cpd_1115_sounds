@@ -361,17 +361,17 @@ REAPER_BASS = [40, 43, 45, 46, 47, 45, 43, 42, 40, 43, 45, 47, 52, 50, 47, 43]
 
 def underworld_swing(mode="scene"):
     """경쾌한 저승 스타일 스윙 — A: 저승사자 스윙 선율(E단조, 블루스) / B: 공연 주제(G장조)
-    mode="scene" : 9장 장면 음악. 104bpm, 클라리넷·첼레스타·하프시코드·브러시, 약 5분, 끊김 없이 반복
+    mode="scene" : 9장 장면 음악. 116bpm, 클라리넷·실로폰·첼레스타·하프시코드, 약 5분, 끊김 없이 반복
     mode="curtain": 커튼콜. 144bpm, 뮤트 트럼펫·실로폰·브라스·튜바·풀 드럼, 조가 두 번 올라가고 큰 마무리 + 테레민"""
     cur = mode == "curtain"
-    bpm = 144 if cur else 104
+    bpm = 144 if cur else 116
     s = Score(bpm)
     if cur:
         s.prog(0, 59, 100, 52, 40).prog(1, 58, 112, 64, 30).prog(2, 13, 100, 78, 40).prog(3, 6, 78, 40, 40) \
          .prog(4, 61, 92, 64, 50).prog(5, 11, 80, 88, 50).prog(6, 19, 60, 64, 80).prog(9, 0, 100)
     else:
         s.prog(0, 71, 92, 52, 50).prog(1, 32, 104, 64, 30).prog(2, 8, 96, 78, 60).prog(3, 6, 70, 40, 50) \
-         .prog(4, 48, 66, 64, 70).prog(5, 11, 72, 88, 60).prog(6, 19, 48, 64, 90).prog(9, 0, 80)
+         .prog(4, 48, 66, 64, 70).prog(5, 13, 78, 88, 50).prog(6, 19, 44, 64, 90).prog(9, 0, 88)
     sw = lambda b: b + (0.09 if abs((b * 2) % 2 - 1) < 1e-6 else 0)       # 뒤 8분음표를 살짝 늦춰 스윙
     swing = lambda notes: [(sw(b), d, p) for b, d, p in notes]
     EmA = [[64, 67, 71], [63, 66, 69, 71], [64, 67, 71], [63, 66, 71]]      # A 반주: Em B7 Em B7
@@ -380,7 +380,8 @@ def underworld_swing(mode="scene"):
             s.n(9, o + b, .3, 51, 62 if kind != "soft" else 48); s.n(9, o + b + 0.67, .2, 51, 38 if kind != "soft" else 28)
             if b % 2 == 1: s.n(9, o + b, .2, 44 if not cur else 38, 50 if not cur else (82 if kind == "full" else 66))
             if cur and b % 2 == 0: s.n(9, o + b, .3, 36, 88 if kind == "full" else 70)
-            elif not cur and b % 4 == 0 and kind != "soft": s.n(9, o + b, .3, 36, 52)
+            elif not cur and b % 2 == 0 and kind != "soft": s.n(9, o + b, .3, 36, 60 if b % 4 == 0 else 48)
+            if not cur and b % 2 == 1 and kind != "soft": s.n(9, o + b, .2, 38, 46)          # 가벼운 백비트
     def sec_A(o, k, kind):                                                 # 16박 × 2
         for r in range(2):
             q = o + r * 16
@@ -412,9 +413,9 @@ def underworld_swing(mode="scene"):
                 ("A", 2, "full"), ("B", 2, "warm"), ("B", 2, "full"),
                 ("A", 4, "full"), ("B", 4, "full"), ("A", 4, "full"), ("B", 4, "full"), ("A", 4, "full"), ("B", 4, "full")]
     else:
-        plan = [("A", 0, "soft"), ("A", 0, "mid"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"), ("A", 0, "soft"),
-                ("B", 0, "warm"), ("A", 0, "mid"), ("A", 0, "soft"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"),
-                ("A", 0, "mid"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm")]
+        plan = [("A", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"), ("A", 0, "mid"), ("B", 0, "warm"), ("A", 0, "mid"),
+                ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"), ("A", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"),
+                ("A", 0, "mid"), ("B", 0, "warm"), ("A", 0, "mid"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm")]
     o = 0; th = []
     for sec, k, kind in plan:
         (sec_A if sec == "A" else sec_B)(o, k, kind)
@@ -903,8 +904,8 @@ CUES = [
          note="차임 끝나고 5B 녹음 방송"),
     dict(id="5B", scene="8장", title="녹음 음성 4 · 긴급공지 방송 (큐프4)", timing="5(차임) 끝나면 바로", file="voice4", voice=True,
          note="배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)"),
-    dict(id="6",  scene="9장", title="9장 장면 음악 · 경쾌한 저승 스윙 (덜 경쾌, 약 5분, 반복)", timing="9장 시작: 전원 등장 '조명이 천천히 밝아진다.'", file="10_scene9_loop", gen=lambda: underworld_swing("scene"), mp3=True, loop=True, vol=0.5,
-         note="104bpm 스윙: 저승사자 선율(클라리넷, E단조) ↔ 공연 주제(첼레스타, G장조), 하프시코드·브러시·낮은 오르간·가끔 테레민 · 끝나면 처음부터 반복 · 볼륨 50% · 커튼콜 큐 6B가 2초에 걸쳐 끔"),
+    dict(id="6",  scene="9장", title="9장 장면 음악 · 경쾌한 저승 스윙 (약 5분, 반복)", timing="9장 시작: 전원 등장 '조명이 천천히 밝아진다.'", file="10_scene9_loop", gen=lambda: underworld_swing("scene"), mp3=True, loop=True, vol=0.5,
+         note="116bpm 스윙: 저승사자 선율(클라리넷·실로폰, E단조) ↔ 공연 주제(첼레스타, G장조), 하프시코드·드럼 백비트·낮은 오르간·가끔 테레민 · 끝나면 처음부터 반복 · 볼륨 50% · 커튼콜 큐 6B가 2초에 걸쳐 끔"),
     dict(id="6B", scene="커튼콜", title="커튼콜 · 경쾌한 저승 스윙 (약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=lambda: underworld_swing("curtain"), mp3=True, vol=0.5, fadeOthers=2, over=True,
          note="\"하나, 둘! 감사합니다!!!\" · 144bpm 뮤트 트럼펫·실로폰·브라스·튜바, 조가 두 번 올라가고 큰 화음 + 테레민으로 끝 · 6번이 나오는 중에 GO하면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
 ]
