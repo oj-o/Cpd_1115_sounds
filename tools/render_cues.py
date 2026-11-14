@@ -296,6 +296,38 @@ def curtain():
     s.n(9, 64, 3, 49, 127); s.n(9, 64, 3, 57, 120); s.n(9, 64, .3, 36, 127)
     return s.render(3.5)
 
+def curtain_long():
+    """엔딩 밝은 음악 약 3분: 커튼콜 주제를 조를 올려 가며 반복 (C → D → E), 중간에 가벼운 브레이크, 마지막 큰 마무리"""
+    bpm = 138
+    s = Score(bpm).prog(0, 9, 100, 60, 40).prog(1, 56, 95, 70, 50).prog(2, 24, 90, 84, 30) \
+                  .prog(3, 32, 110).prog(4, 61, 85, 44, 50).prog(5, 47, 100, 64, 50).prog(6, 73, 85, 50, 50).prog(9, 0, 110)
+    plan = [(0, "light"), (0, "full"), (0, "brass"), (0, "full"), (0, "break"),
+            (2, "full"), (2, "flute"), (2, "brass"), (2, "full"),
+            (4, "full"), (4, "flute"), (4, "brass"), (4, "full")]
+    for i, (k, kind) in enumerate(plan):
+        o = i * 32
+        chords = [[p + k for p in c] for c in MAIN_CH]
+        if kind == "light":                                            # 시작: 글로켄·기타만, 가볍게
+            s.seq(0, MAIN_MEL, 95, o, k); band(s, 8, chords, o, drums=True, full=False)
+        elif kind == "break":                                          # 브레이크: 드럼 빼고 손뼉 + 플루트
+            s.seq(6, MAIN_MEL, 90, o, k); band(s, 8, chords, o, drums=False)
+            for b in range(0, 32, 2): s.n(9, o + b + 1, .2, 39, 80)
+        else:
+            s.seq(0, MAIN_MEL, 100, o, k)
+            if kind in ("brass", "full"): s.seq(1, MAIN_MEL, 92 if kind == "brass" else 80, o, k - 12)
+            if kind == "flute": s.seq(6, MAIN_MEL, 85, o, k)
+            band(s, 8, chords, o, True, True)
+            for j, ch in enumerate(chords): s.n(4, o + j * 4 + 3.5, .4, [p - 12 for p in ch], 85 if kind == "brass" else 70)
+        s.n(9, o, 2, 49, 100 if kind != "light" else 70)
+        if i + 1 < len(plan) and plan[i + 1][0] != k:                  # 조 바뀌기 직전 팀파니 롤 + 드럼 필
+            for t in range(16): s.n(5, o + 30 + t * 0.125, .12, 43 + k, 60 + t * 4)
+    E = len(plan) * 32; k = 4
+    for t in range(16): s.n(5, E - 2 + t * 0.125, .12, 47, 60 + t * 4)
+    s.n(0, E, 4, 88, 120); s.n(1, E, 4, [76, 80, 83], 115); s.n(4, E, 4, [52, 59, 64, 68], 115)
+    s.n(2, E, 4, [p + k for p in C], 100); s.n(3, E, 4, 40, 120); s.n(5, E, 1, 40, 127)
+    s.n(9, E, 4, 49, 127); s.n(9, E, 4, 57, 120); s.n(9, E, .3, 36, 127)
+    return s.render(4)
+
 def jingle():
     s = Score(120).prog(0, 6, 100, 50, 60).prog(1, 45, 110, 78, 60).prog(2, 47, 110).prog(3, 8, 80, 64, 70)
     s.seq(0, [(0, .5, 69), (.5, .5, 72), (1, .5, 71), (1.5, .5, 70), (2, .5, 69), (2.5, .5, 68), (3, 1, 64),
@@ -714,19 +746,18 @@ def _eerie_lobby(key=0, bpm=76, detune=-650):
     return y
 
 def house_suite():
-    """관객 입장 음악 약 5분 — 처음부터 끝까지 으스스하게
-    음이 나간 로비 왈츠 → 저승 오피스 왈츠(오르골 선율) → 삼도천 지하철(드론·철길) → 더 낮고 느린 로비 왈츠"""
+    """관객 입장 음악 약 3분 — 처음부터 끝까지 으스스하게
+    음이 나간 로비 왈츠 → 저승 오피스 왈츠(오르골 선율) → 삼도천 지하철(드론·철길)"""
     def norm(x, db=-22):
         r = np.sqrt(np.mean(x.astype(np.float64) ** 2)) + 1e-9
         return (x * (10 ** (db / 20) / r)).astype(np.float32)
     lobby = norm(_eerie_lobby(), -22)
-    office = underworld_office(); office = norm(np.vstack([office] * 3), -22)
-    sub = norm(_subway(60), -23)
-    deep = norm(_eerie_lobby(key=-2, bpm=70, detune=-900), -23)
+    office = underworld_office(); office = norm(np.vstack([office] * 2), -22)
+    sub = norm(_subway(40), -23)
     def tail(x, keep=1.2):                                                   # 구간 끝 잔향 꼬리를 잘라 무음 공백 방지
         i = np.where(np.max(np.abs(x), 1) > 10 ** (-45 / 20))[0][-1]
         return x[:min(len(x), i + int(keep * SR))]
-    out = _xfade([tail(lobby), office, tail(sub), deep], 3.0)
+    out = _xfade([tail(lobby), office, tail(sub)], 3.0)
     idx = np.where(np.max(np.abs(out), 1) > 10 ** (-55 / 20))[0]          # 끝 무음 정리 (반복 시 공백 최소화)
     out = out[:idx[-1] + int(1.5 * SR)]
     n = int(3.0 * SR); out[-n:] *= np.linspace(1, 0, n)[:, None]
@@ -736,8 +767,8 @@ def house_suite():
 # type: audio | stop      fadeOthers: GO 시 재생 중인 다른 큐를 몇 초에 걸쳐 페이드아웃
 # 이전 34큐 버전은 git 기록(c0e548c), 16큐 버전은 b1bd4dc에 있습니다.
 CUES = [
-    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 5분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
-         note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철 → 더 낮은 로비 왈츠. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
+    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 3분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
+         note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철, 끝나면 처음부터 반복. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
     dict(id="1",  scene="1장", title="전화벨 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
          note="음악이 남아 있으면 1초에 걸쳐 꺼짐"),
     dict(id="1B", scene="1장", title="전화벨 정지 (받음)", timing="주인공 \"여보세요?\" 직전", type="stop", fade=0.1),
@@ -749,8 +780,8 @@ CUES = [
          note="인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
     dict(id="5",  scene="8장", title="긴급공지 방송 (차임)", timing="인사담당자 \"(방송) 긴급 공지입니다…\" 직전", file="09_chime", gen=chime,
          note="차임 끝나고 방송 대사: 무대 뒤 마이크 + 확성기 음색 EQ"),
-    dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain, fadeOthers=1,
-         note="\"하나, 둘! 감사합니다!!!\" · 인사가 끝날 때까지 이어짐 (마지막 화음은 시작 약 27초 뒤)"),
+    dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜, 약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain_long, mp3=True, fadeOthers=1,
+         note="\"하나, 둘! 감사합니다!!!\" · 약 3분, C→D→E로 조가 올라가며 끝에 큰 마무리. 일찍 끝나면 F로 페이드"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
