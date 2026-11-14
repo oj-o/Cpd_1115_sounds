@@ -107,6 +107,7 @@ window.CUES = [
   "title": "녹음 음성 3 (큐프3)",
   "timing": "4(벨소리)와 4B(받음) 사이",
   "voice": true,
+  "over": true,
   "note": "배우 녹음 · 벨소리 위에 겹쳐 재생됨 · 4B는 벨소리만 끄고 이 녹음은 끝까지 재생",
   "type": "audio",
   "src": "audio/voice3.mp3",

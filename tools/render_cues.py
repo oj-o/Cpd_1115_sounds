@@ -780,7 +780,7 @@ CUES = [
     dict(id="3C", scene="2장", title="녹음 음성 2 (큐프2)", timing="3B(감사팀장 연결) 바로 뒤", file="voice2", voice=True,
          note="배우 녹음 · 한 번 재생 후 자동 종료"),
     dict(id="4",  scene="4장", title="벨소리 (인사과 전화)", timing="지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)", file="03_ring", loop=True, vol=1.0),
-    dict(id="4A", scene="4장", title="녹음 음성 3 (큐프3)", timing="4(벨소리)와 4B(받음) 사이", file="voice3", voice=True,
+    dict(id="4A", scene="4장", title="녹음 음성 3 (큐프3)", timing="4(벨소리)와 4B(받음) 사이", file="voice3", voice=True, over=True,
          note="배우 녹음 · 벨소리 위에 겹쳐 재생됨 · 4B는 벨소리만 끄고 이 녹음은 끝까지 재생"),
     dict(id="4B", scene="4장", title="벨소리 정지 (받음)", timing="\"(전화 받음.) 여보세요?\"", type="stop", fade=0.1, targets=["4"],
          note="인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
