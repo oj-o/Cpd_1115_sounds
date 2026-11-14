@@ -122,7 +122,7 @@ a.mini{text-decoration:none;display:inline-block}
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.15a · 9장 저승 스윙(6) · 커튼콜 저승 스윙(6B) · 17큐</span>
+    <span class="status">v2026.11.15b · 3B 삭제 · 16큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -162,7 +162,7 @@ a.mini{text-decoration:none;display:inline-block}
 
 <a class="lightlink" href="lighting/cue_maker.html" title="조명 큐 생성 · 비상 수동 조정 (새 탭)" target="_blank" rel="noopener">💡 조명 큐 생성 →</a>
 
-<script src="cues.js?v=20261115a"></script>
+<script src="cues.js?v=20261115b"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
@@ -286,7 +286,7 @@ a.mini{text-decoration:none;display:inline-block}
   // GO 버튼 하나로 GO·일시정지·이어서:
   //  · 소리가 나오는 중이면 GO 버튼 = 일시정지 / 이어서 (입장 음악·엔딩·녹음·효과음 모두)
   //  · 소리가 끝나거나 F(페이드)·Esc로 끄면 다시 GO
-  //  · 예외: 다음 큐가 정지 큐(1B·3B: 벨소리를 끄는 GO)이거나 겹쳐 나가는 큐(4A)면 GO
+  //  · 예외: 다음 큐가 정지 큐(1B: 벨소리를 끄는 GO)이거나 겹쳐 나가는 큐(4A)면 GO
   const firesOver = n => n && (n.type === "stop" || n.over);
   function pauseTarget() {
     const r = lastRun;
