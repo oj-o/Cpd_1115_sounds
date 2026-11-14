@@ -328,6 +328,33 @@ def curtain_long():
     s.n(9, E, 4, 49, 127); s.n(9, E, 4, 57, 120); s.n(9, E, .3, 36, 127)
     return s.render(4)
 
+def curtain_calm():
+    """엔딩 음악 약 5분, 반복용: 커튼콜 주제를 조금 덜 경쾌하게 (112bpm, 비브라폰·호른·현·나일론 기타)
+    C → D → C로 돌아와 처음과 이어지게 끝남 (끝 잔향은 앞으로 감아 끊김 없이 반복)"""
+    bpm = 112
+    s = Score(bpm).prog(0, 11, 92, 60, 50).prog(1, 60, 80, 70, 60).prog(2, 24, 80, 84, 40) \
+                  .prog(3, 32, 100).prog(4, 48, 75, 44, 70).prog(6, 73, 80, 50, 60).prog(9, 0, 85)
+    plan = [(0, "light"), (0, "light"), (0, "warm"), (0, "full"), (0, "flute"), (0, "warm"),
+            (2, "light"), (2, "warm"), (2, "full"), (2, "flute"), (2, "warm"), (2, "full"),
+            (0, "break"), (0, "warm"), (0, "full"), (0, "flute"), (0, "warm"), (0, "light")]
+    for i, (k, kind) in enumerate(plan):
+        o = i * 32
+        chords = [[p + k for p in c] for c in MAIN_CH]
+        if kind == "light":                                            # 비브라폰 선율 + 기타, 드럼은 가볍게
+            s.seq(0, MAIN_MEL, 82, o, k); band(s, 8, chords, o, drums=True, full=False)
+        elif kind == "break":                                          # 드럼 없이 플루트 + 현
+            s.seq(6, MAIN_MEL, 78, o, k); band(s, 8, chords, o, drums=False)
+            for j, ch in enumerate(chords): s.n(4, o + j * 4, 4, [p - 12 for p in ch], 60)
+        else:
+            s.seq(0, MAIN_MEL, 86, o, k)
+            if kind in ("warm", "full"): s.seq(1, MAIN_MEL, 70 if kind == "warm" else 78, o, k - 12)
+            if kind == "flute": s.seq(6, MAIN_MEL, 74, o, k)
+            band(s, 8, chords, o, True, kind == "full")
+            for j, ch in enumerate(chords): s.n(4, o + j * 4, 4, [p - 12 for p in ch], 55 if kind != "full" else 66)
+        if i % 2 == 0: s.n(9, o, 2, 49, 55)                           # 심벌은 두 블록에 한 번, 작게
+    L = s.sec(len(plan) * 32)
+    return loop_wrap(s.render(4), L)
+
 def jingle():
     s = Score(120).prog(0, 6, 100, 50, 60).prog(1, 45, 110, 78, 60).prog(2, 47, 110).prog(3, 8, 80, 64, 70)
     s.seq(0, [(0, .5, 69), (.5, .5, 72), (1, .5, 71), (1.5, .5, 70), (2, .5, 69), (2.5, .5, 68), (3, 1, 64),
@@ -794,8 +821,8 @@ CUES = [
          note="차임 끝나고 5B 녹음 방송"),
     dict(id="5B", scene="8장", title="녹음 음성 4 · 긴급공지 방송 (큐프4)", timing="5(차임) 끝나면 바로", file="voice4", voice=True,
          note="배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)"),
-    dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜, 약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain_long, mp3=True, fadeOthers=1,
-         note="\"하나, 둘! 감사합니다!!!\" · 약 3분, C→D→E로 조가 올라가며 끝에 큰 마무리. 일찍 끝나면 F로 페이드"),
+    dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜, 약 5분, 반복)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_ending_loop", gen=curtain_calm, mp3=True, loop=True, vol=0.5, fadeOthers=1,
+         note="\"하나, 둘! 감사합니다!!!\" · 커튼콜 주제를 조금 덜 경쾌하게(112bpm, 비브라폰·호른·현) 약 5분, 끝나면 처음부터 반복 · 볼륨 50% · 끝낼 때 F로 페이드"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
@@ -804,7 +831,7 @@ LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
 
 def master(x, name):
     x = x.astype(np.float64)
-    if not name.endswith(("house", "suite", "office", "piano", "strings", "ring", "ringback")):        # 루프가 아니면 꼬리 정리
+    if not name.endswith(("house", "suite", "office", "piano", "strings", "ring", "ringback", "loop")):        # 루프가 아니면 꼬리 정리
         env = np.max(np.abs(x), 1); idx = np.where(env > 10 ** (-62 / 20))[0]
         if len(idx): x = x[:idx[-1] + int(0.05 * SR)]
         n = int(0.04 * SR); x[-n:] *= np.linspace(1, 0, n)[:, None]
