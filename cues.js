@@ -141,17 +141,14 @@ window.CUES = [
  {
   "id": "4A",
   "scene": "4장",
-  "title": "벨소리 + 녹음 음성 3 (큐프3)",
+  "title": "녹음 음성 3 (큐프3)",
   "timing": "4(벨소리)와 4B(받음) 사이",
   "voice": true,
   "over": true,
-  "cuts": [
-   "4"
-  ],
-  "note": "벨소리 2번(5초) → 배우 녹음. 시작할 때 4번 벨소리는 바로 끊기고 녹음 속 벨소리로 이어짐 · 녹음은 페이드되지 않음",
+  "note": "배우 녹음 · 4번 벨소리 위에 겹쳐 재생 · 4B는 벨소리만 끄고 이 녹음은 끝까지 재생 · 페이드되지 않음",
   "type": "audio",
-  "src": "audio/voice3.mp3?v=cada76bb",
-  "dur": 30.54
+  "src": "audio/voice3.mp3?v=a6c5efdb",
+  "dur": 25.55
  },
  {
   "id": "4B",
