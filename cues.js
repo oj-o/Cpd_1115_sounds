@@ -43,7 +43,7 @@ window.CUES = [
   "title": "녹음 음성 1 (큐프1)",
   "timing": "1B(전화 받음) 바로 뒤",
   "voice": true,
-  "note": "배우 녹음 · 한 번 재생 후 자동 종료",
+  "note": "배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
   "src": "audio/voice1.mp3",
   "dur": 17.92
@@ -85,7 +85,7 @@ window.CUES = [
   "title": "녹음 음성 2 (큐프2)",
   "timing": "3B(감사팀장 연결) 바로 뒤",
   "voice": true,
-  "note": "배우 녹음 · 한 번 재생 후 자동 종료",
+  "note": "배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
   "src": "audio/voice2.mp3",
   "dur": 9.74
@@ -104,14 +104,17 @@ window.CUES = [
  {
   "id": "4A",
   "scene": "4장",
-  "title": "녹음 음성 3 (큐프3)",
+  "title": "벨소리 + 녹음 음성 3 (큐프3)",
   "timing": "4(벨소리)와 4B(받음) 사이",
   "voice": true,
   "over": true,
-  "note": "배우 녹음 · 벨소리 위에 겹쳐 재생됨 · 4B는 벨소리만 끄고 이 녹음은 끝까지 재생",
+  "cuts": [
+   "4"
+  ],
+  "note": "벨소리 2번(5초) → 배우 녹음. 시작할 때 4번 벨소리는 바로 끊기고 녹음 속 벨소리로 이어짐 · 녹음은 페이드되지 않음",
   "type": "audio",
   "src": "audio/voice3.mp3",
-  "dur": 25.55
+  "dur": 30.54
  },
  {
   "id": "4B",
@@ -141,7 +144,7 @@ window.CUES = [
   "title": "녹음 음성 4 · 긴급공지 방송 (큐프4)",
   "timing": "5(차임) 끝나면 바로",
   "voice": true,
-  "note": "배우 녹음 · 한 번 재생 후 자동 종료",
+  "note": "배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
   "src": "audio/voice4.mp3",
   "dur": 7.63

@@ -115,7 +115,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.14f · GO 버튼 하나로 GO·일시정지 · 14큐</span>
+    <span class="status">v2026.11.14g · 녹음은 페이드 없음 · 녹음3 앞 벨소리 · 14큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -259,6 +259,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   function stopRun(r, sec = 0) {
     if (!running.has(r.uid)) return;
     if (r.paused) sec = 0;                                   // 멈춘 소리는 바로 끔
+    if (sec > 0 && r.cue.voice) return;                      // 녹음 음성은 페이드하지 않음 (끝까지 재생, 즉시 정지만 가능)
     if (sec > 0) { r.fading = true; r.card.classList.add("fading"); ramp(r, 0, sec, () => kill(r)); drawGo(); }
     else kill(r);
   }
@@ -296,6 +297,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 
   function play(c) {
     if (c.fadeOthers !== undefined) stopAll(c.fadeOthers);
+    if (c.cuts) stopIds(c.cuts, 0);                          // 앞 소리를 바로 끊고 시작 (4A: 벨소리 → 녹음 속 벨소리로 이어짐)
     if (c.type === "stop") { c.targets ? stopIds(c.targets, c.fade || 0) : stopAll(c.fade || 0); return; }
     let a = pool.get(c.src);
     if (!a || [...running.values()].some(r => r.audio === a)) { a = new Audio(c.src); }
@@ -325,10 +327,10 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     el.innerHTML = `<div class="row"><span class="id">${c.id}</span><span class="ttl">${c.title}</span><span class="time" data-t>0:00</span></div>
       <div class="bar"><i></i></div>
       <div class="row"><input type="range" min="0" max="100" value="${Math.round(r.base * 100)}" aria-label="큐 ${c.id} 볼륨">
-      <button class="mini p" type="button" data-p>❚❚ 멈춤</button><button class="mini" type="button" data-f>페이드 ${fadeSec}s</button><button class="mini x" type="button" data-s>정지</button></div>`;
+      <button class="mini p" type="button" data-p>❚❚ 멈춤</button>${c.voice ? "" : `<button class="mini" type="button" data-f>페이드 ${fadeSec}s</button>`}<button class="mini x" type="button" data-s>정지</button></div>`;
     el.querySelector("input").oninput = e => { r.base = e.target.value / 100; apply(r); };
     el.querySelector("[data-p]").onclick = () => togglePause(r);
-    el.querySelector("[data-f]").onclick = () => stopRun(r, fadeSec);
+    if (!c.voice) el.querySelector("[data-f]").onclick = () => stopRun(r, fadeSec);
     el.querySelector("[data-s]").onclick = () => stopRun(r, 0);
     return el;
   }
