@@ -355,6 +355,88 @@ def curtain_calm():
     L = s.sec(len(plan) * 32)
     return loop_wrap(s.render(4), L)
 
+REAPER_MEL = [(0, 1, 64), (1.5, .5, 67), (2, .5, 69), (2.5, 1.5, 70), (4, .5, 71), (4.5, .5, 70), (5, .5, 69), (5.5, .5, 67), (6, 2, 64),
+              (8, 1, 64), (9.5, .5, 67), (10, .5, 69), (10.5, 1.5, 70), (12, .5, 76), (12.5, .5, 75), (13, 1, 71), (14, 1.5, 64)]
+REAPER_BASS = [40, 43, 45, 46, 47, 45, 43, 42, 40, 43, 45, 47, 52, 50, 47, 43]
+
+def underworld_swing(mode="scene"):
+    """경쾌한 저승 스타일 스윙 — A: 저승사자 스윙 선율(E단조, 블루스) / B: 공연 주제(G장조)
+    mode="scene" : 9장 장면 음악. 104bpm, 클라리넷·첼레스타·하프시코드·브러시, 약 5분, 끊김 없이 반복
+    mode="curtain": 커튼콜. 144bpm, 뮤트 트럼펫·실로폰·브라스·튜바·풀 드럼, 조가 두 번 올라가고 큰 마무리 + 테레민"""
+    cur = mode == "curtain"
+    bpm = 144 if cur else 104
+    s = Score(bpm)
+    if cur:
+        s.prog(0, 59, 100, 52, 40).prog(1, 58, 112, 64, 30).prog(2, 13, 100, 78, 40).prog(3, 6, 78, 40, 40) \
+         .prog(4, 61, 92, 64, 50).prog(5, 11, 80, 88, 50).prog(6, 19, 60, 64, 80).prog(9, 0, 100)
+    else:
+        s.prog(0, 71, 92, 52, 50).prog(1, 32, 104, 64, 30).prog(2, 8, 96, 78, 60).prog(3, 6, 70, 40, 50) \
+         .prog(4, 48, 66, 64, 70).prog(5, 11, 72, 88, 60).prog(6, 19, 48, 64, 90).prog(9, 0, 80)
+    sw = lambda b: b + (0.09 if abs((b * 2) % 2 - 1) < 1e-6 else 0)       # 뒤 8분음표를 살짝 늦춰 스윙
+    swing = lambda notes: [(sw(b), d, p) for b, d, p in notes]
+    EmA = [[64, 67, 71], [63, 66, 69, 71], [64, 67, 71], [63, 66, 71]]      # A 반주: Em B7 Em B7
+    def drums(o, beats, kind):
+        for b in range(beats):
+            s.n(9, o + b, .3, 51, 62 if kind != "soft" else 48); s.n(9, o + b + 0.67, .2, 51, 38 if kind != "soft" else 28)
+            if b % 2 == 1: s.n(9, o + b, .2, 44 if not cur else 38, 50 if not cur else (82 if kind == "full" else 66))
+            if cur and b % 2 == 0: s.n(9, o + b, .3, 36, 88 if kind == "full" else 70)
+            elif not cur and b % 4 == 0 and kind != "soft": s.n(9, o + b, .3, 36, 52)
+    def sec_A(o, k, kind):                                                 # 16박 × 2
+        for r in range(2):
+            q = o + r * 16
+            s.seq(1, [(q + i, .9, p + k) for i, p in enumerate(REAPER_BASS)], 100 if not cur else 108)
+            lead = 0 if (r == 0 or kind == "soft") else 5
+            s.seq(lead, swing(REAPER_MEL), 92 if lead == 0 else 80, q, k + (12 if lead == 5 and not cur else 0))
+            if cur and kind == "full": s.seq(2, swing(REAPER_MEL), 78, q + .01, k + 12)
+            for j, ch in enumerate(EmA):
+                b0 = q + j * 4
+                s.n(3, b0 + 1, .25, [p + k for p in ch], 62); s.n(3, b0 + 3, .25, [p + k for p in ch], 58)
+                if cur and kind == "full": s.n(4, b0 + 3.5, .4, [p + k - 12 for p in ch], 86)
+                if not cur and kind != "soft": s.n(4, b0, 4, [p + k - 12 for p in ch], 50)
+            if kind == "soft": s.n(6, q, 16, [40 + k, 47 + k, 52 + k], 50)              # 낮은 오르간: 저승 색
+            drums(q, 16, kind)
+    def sec_B(o, k, kind):                                                 # 32박: 주제 G장조
+        chords = [[p - 5 + k for p in c] for c in MAIN_CH]
+        s.seq(2, swing(MAIN_MEL), 90, o, k - 5)
+        if kind in ("full", "warm"): s.seq(0, swing(MAIN_MEL), 70 if not cur else 84, o + .01, k - 17)
+        for j, ch in enumerate(chords):
+            b0 = o + j * 4; root = ch[0] - 24 if ch[0] >= 57 else ch[0] - 12
+            for i, p in enumerate([root, root + 4 if ch[1] - ch[0] == 4 else root + 3, root + 7, root + 9]):
+                s.n(1, b0 + i, .9, p, 100 if not cur else 108)
+            s.n(3, b0 + 1, .25, ch, 60); s.n(3, b0 + 3, .25, ch, 56)
+            if cur and kind == "full": s.n(4, b0 + 1.5, .4, [p - 12 for p in ch], 84); s.n(4, b0 + 3.5, .4, [p - 12 for p in ch], 80)
+            if not cur: s.n(4, b0, 4, [p - 12 for p in ch], 46 if kind == "soft" else 56)
+        drums(o, 32, kind)
+    if cur:
+        plan = [("A", 0, "soft"), ("A", 0, "full"), ("B", 0, "full"), ("A", 0, "full"),
+                ("A", 2, "full"), ("B", 2, "warm"), ("B", 2, "full"),
+                ("A", 4, "full"), ("B", 4, "full"), ("A", 4, "full"), ("B", 4, "full"), ("A", 4, "full"), ("B", 4, "full")]
+    else:
+        plan = [("A", 0, "soft"), ("A", 0, "mid"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"), ("A", 0, "soft"),
+                ("B", 0, "warm"), ("A", 0, "mid"), ("A", 0, "soft"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm"),
+                ("A", 0, "mid"), ("B", 0, "soft"), ("A", 0, "mid"), ("B", 0, "warm")]
+    o = 0; th = []
+    for sec, k, kind in plan:
+        (sec_A if sec == "A" else sec_B)(o, k, kind)
+        if sec == "A" and kind != "soft" and (o // 32) % 3 == 1:                          # 가끔 테레민이 대답
+            th += [(o + 6.5, 1.5, 76 + k), (o + 8, 2, 75 + k), (o + 22.5, 1.5, 79 + k), (o + 24, 3, 76 + k)]
+        if cur and sec == "A" and k and plan[[p[1] for p in plan].index(k)] == (sec, k, kind):
+            for t in range(16): s.n(9, o - 2 + t * .125, .1, 38, 50 + t * 4)                 # 조 바뀌기 전 스네어 롤
+        s.n(9, o, 2, 49 if cur else 53, 90 if cur else 45)
+        o += 32
+    if cur:                                                                # 큰 마무리
+        E = o; k = 4
+        for t in range(16): s.n(9, E - 2 + t * .125, .1, 38, 60 + t * 4)
+        s.n(4, E, 4, [55 + k, 59 + k, 62 + k, 67 + k], 120); s.n(0, E, 4, 79 + k, 118); s.n(2, E, 4, [79 + k, 91 + k], 110)
+        s.n(1, E, 4, 31 + k, 120); s.n(3, E, 4, [55 + k, 59 + k, 62 + k], 100)
+        s.n(9, E, 4, 49, 127); s.n(9, E, 4, 57, 120); s.n(9, E, .3, 36, 127)
+        th += [(E - 4, 4, 67 + k), (E, 4, 91 + k)]
+        x = s.render(4)
+    else:
+        x = loop_wrap(s.render(4), s.sec(o))
+    tm = theremin(th, bpm, o + 8, level=0.22 if cur else 0.18)
+    return mix(len(x) / SR, [(0, x), (0, tm[:len(x)])])
+
 def jingle():
     s = Score(120).prog(0, 6, 100, 50, 60).prog(1, 45, 110, 78, 60).prog(2, 47, 110).prog(3, 8, 80, 64, 70)
     s.seq(0, [(0, .5, 69), (.5, .5, 72), (1, .5, 71), (1.5, .5, 70), (2, .5, 69), (2.5, .5, 68), (3, 1, 64),
@@ -821,10 +903,10 @@ CUES = [
          note="차임 끝나고 5B 녹음 방송"),
     dict(id="5B", scene="8장", title="녹음 음성 4 · 긴급공지 방송 (큐프4)", timing="5(차임) 끝나면 바로", file="voice4", voice=True,
          note="배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)"),
-    dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜, 약 5분, 반복)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_ending_loop", gen=curtain_calm, mp3=True, loop=True, vol=0.5, fadeOthers=1,
-         note="\"하나, 둘! 감사합니다!!!\" · 커튼콜 주제를 조금 덜 경쾌하게(112bpm, 비브라폰·호른·현) 약 5분, 끝나면 처음부터 반복 · 볼륨 50% · 끝낼 때 F로 페이드"),
-    dict(id="6B", scene="엔딩", title="커튼콜 · 경쾌한 음악 (약 3분)", timing="커튼콜을 더 신나게 할 때 (6번 대신 또는 6번 다음)", file="10_curtain", gen=curtain_long, mp3=True, vol=0.5, fadeOthers=2,
-         note="138bpm 풀 밴드·브라스, C→D→E로 조가 올라가며 끝에 큰 화음 · 6번이 나오는 중에 누르면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
+    dict(id="6",  scene="9장", title="9장 장면 음악 · 경쾌한 저승 스윙 (덜 경쾌, 약 5분, 반복)", timing="9장 시작: 전원 등장 '조명이 천천히 밝아진다.'", file="10_scene9_loop", gen=lambda: underworld_swing("scene"), mp3=True, loop=True, vol=0.5,
+         note="104bpm 스윙: 저승사자 선율(클라리넷, E단조) ↔ 공연 주제(첼레스타, G장조), 하프시코드·브러시·낮은 오르간·가끔 테레민 · 끝나면 처음부터 반복 · 볼륨 50% · 커튼콜 큐 6B가 2초에 걸쳐 끔"),
+    dict(id="6B", scene="커튼콜", title="커튼콜 · 경쾌한 저승 스윙 (약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=lambda: underworld_swing("curtain"), mp3=True, vol=0.5, fadeOthers=2, over=True,
+         note="\"하나, 둘! 감사합니다!!!\" · 144bpm 뮤트 트럼펫·실로폰·브라스·튜바, 조가 두 번 올라가고 큰 화음 + 테레민으로 끝 · 6번이 나오는 중에 GO하면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
