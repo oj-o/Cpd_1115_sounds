@@ -58,6 +58,9 @@ aside{border-left:1px solid var(--line);background:var(--panel);display:flex;fle
 #go{all:unset;box-sizing:border-box;height:96px;border-radius:12px;background:var(--go);color:#062814;font:800 40px var(--ui);text-align:center;cursor:pointer;letter-spacing:.06em;display:grid;place-items:center;user-select:none}
 #go:active{transform:translateY(1px);filter:brightness(.9)}
 #go:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+#go.pz{background:var(--warn);color:#2a1a00;font-size:30px;line-height:1.15}
+#go.pz.resume{background:var(--accent);color:#120a33}
+#go small{display:block;font:600 13px var(--ui);letter-spacing:0;opacity:.8}
 #go[disabled]{background:var(--raise);color:var(--muted);cursor:default}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .fsel{display:flex;align-items:center;gap:8px}
@@ -108,7 +111,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.14c · 일시정지·이어서 재생 · 14큐</span>
+    <span class="status">v2026.11.14d · GO 버튼으로 일시정지 · 14큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -138,7 +141,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
         <button class="btn" id="fadeAll" type="button">전체 페이드 (3초)</button>
         <button class="btn stop" id="stopAll" type="button">전체 정지</button>
       </div>
-      <div class="keys"><kbd>Space</kbd> GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>P</kbd> 일시정지·이어서 · <kbd>F</kbd> 전체 페이드 · <kbd>3</kbd><kbd>5</kbd><kbd>0</kbd> 페이드 3·5·10초 선택 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생</div>
+      <div class="keys"><kbd>Space</kbd> GO (단발 소리가 나오는 동안은 일시정지·이어서) · <kbd>Shift</kbd>+<kbd>Space</kbd> 무조건 다음 큐 GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>P</kbd> 일시정지·이어서 · <kbd>F</kbd> 전체 페이드 · <kbd>3</kbd><kbd>5</kbd><kbd>0</kbd> 페이드 3·5·10초 선택 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생</div>
     </section>
     <section class="active" id="active"><p class="empty">재생 중인 큐가 없습니다.</p></section>
   </aside>
@@ -149,7 +152,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 (() => {
   const CUES = window.CUES || [];
   const $ = id => document.getElementById(id);
-  let standby = 0, master = 1, lastGo = 0, uid = 0, fadeSec = 3;
+  let standby = 0, master = 1, lastGo = 0, uid = 0, fadeSec = 3, lastRun = null;
   const running = new Map();            // uid -> {cue, audio, base, gain, fadeTimer, card, ...}
   const pool = new Map();               // src -> preloaded Audio
   const missing = new Set();
@@ -201,7 +204,23 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     $("nId").textContent = c ? c.id : "–";
     $("nTitle").textContent = c ? c.title : "마지막 큐까지 진행했습니다";
     $("nTiming").textContent = c ? c.timing || "" : "";
-    $("go").disabled = !c;
+    drawGo();
+  }
+  // GO 버튼 = 방금 GO한 소리(단발)가 나오는 동안은 일시정지·이어서 버튼
+  //  · 반복 큐(벨소리·입장 음악) 뒤, 또는 다음 큐가 정지 큐면 언제나 GO
+  function pauseTarget() {
+    const r = lastRun;
+    if (!r || !running.has(r.uid) || r.cue.loop || r.fading) return null;
+    const n = CUES[standby];
+    if (n && n.type === "stop") return null;
+    return r;
+  }
+  function drawGo() {
+    const b = $("go"), r = pauseTarget(), c = CUES[standby];
+    if (r) {
+      b.disabled = false; b.className = "pz" + (r.paused ? " resume" : "");
+      b.innerHTML = `${r.paused ? "▶ 이어서" : "❚❚ 일시정지"}<small>${r.cue.id} ${r.cue.title} · 끝나면 다시 GO</small>`;
+    } else { b.className = ""; b.textContent = "GO"; b.disabled = !c; }
   }
   function setStandby(i, scroll = true) {
     standby = Math.max(0, Math.min(CUES.length, i)); render();
@@ -223,7 +242,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   function stopRun(r, sec = 0) {
     if (!running.has(r.uid)) return;
     if (r.paused) sec = 0;                                   // 멈춘 소리는 바로 끔
-    if (sec > 0) { r.fading = true; r.card.classList.add("fading"); ramp(r, 0, sec, () => kill(r)); }
+    if (sec > 0) { r.fading = true; r.card.classList.add("fading"); ramp(r, 0, sec, () => kill(r)); drawGo(); }
     else kill(r);
   }
   function kill(r) {
@@ -237,14 +256,14 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     if (r.paused) return;
     clearInterval(r.fadeTimer); r.audio.pause(); r.paused = true;
     r.card.classList.add("paused"); r.card.querySelector("[data-p]").textContent = "▶ 이어서";
-    syncPause();
+    syncPause(); drawGo();
   }
   function resumeRun(r) {
     if (!r.paused) return;
     r.paused = false; r.card.classList.remove("paused"); r.card.querySelector("[data-p]").textContent = "❚❚ 멈춤";
     r.audio.play().catch(() => {});
     if (r.fading) ramp(r, 0, fadeSec, () => kill(r));        // 페이드 중 멈췄으면 남은 페이드를 이어서
-    syncPause();
+    syncPause(); drawGo();
   }
   const togglePause = r => r.paused ? resumeRun(r) : pauseRun(r);
   function pauseAllToggle() {
@@ -269,7 +288,12 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     a.play().catch(e => { $("status").textContent = `재생 실패: ${c.src} (${e.name})`; $("status").className = "status bad"; });
     if (c.fadeIn) ramp(r, 1, c.fadeIn);
     a.onended = () => { if (!a.loop) kill(r); };
-    r.card = makeCard(r); running.set(r.uid, r); drawActive(); syncPause();
+    r.card = makeCard(r); running.set(r.uid, r); lastRun = r; drawActive(); syncPause();
+  }
+  function goOrPause() {
+    const r = pauseTarget();
+    if (r) { const now = performance.now(); if (now - lastGo < 250) return; lastGo = now; togglePause(r); return; }
+    go();
   }
   function go() {
     const now = performance.now(); if (now - lastGo < 250) return; lastGo = now;   // 이중 입력 방지
@@ -306,7 +330,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   }, 100);
 
   // ── 조작 ──
-  $("go").onclick = go;
+  $("go").onclick = goOrPause;
   function setFade(sec) {
     fadeSec = sec;
     document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.sec === sec)));
@@ -322,7 +346,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   $("master").oninput = e => { master = e.target.value / 100; $("mvv").textContent = e.target.value; running.forEach(apply); };
   document.addEventListener("keydown", e => {
     if (e.target.matches("input")) { if (e.code !== "Space" && e.key !== "Escape") return; e.target.blur(); }
-    if (e.code === "Space") { e.preventDefault(); if (!e.repeat) go(); }
+    if (e.code === "Space") { e.preventDefault(); if (!e.repeat) (e.shiftKey ? go : goOrPause)(); }
     else if (e.key === "ArrowDown") { e.preventDefault(); setStandby(standby + 1); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setStandby(standby - 1); }
     else if (e.key === "Escape") { e.preventDefault(); stopAll(0); }
