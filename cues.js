@@ -2,11 +2,26 @@
 // type: audio | stop · loop: 반복 · vol: 0~1 · fadeIn/fadeOthers/fade: 초
 window.CUES = [
  {
+  "id": "OP",
+  "scene": "프리쇼",
+  "title": "관객 입장 · 오프닝 음악 (반복)",
+  "timing": "하우스 오픈, 관객 입장 시작",
+  "loop": true,
+  "vol": 0.6,
+  "userFile": true,
+  "note": "유튜브 곡(youtu.be/_CzSCWpF7TM). audio/00_opening.mp3로 넣거나, 이 줄의 '음원 파일 선택'으로 고르면 이 컴퓨터 브라우저에 저장됨 · 다음 큐 0이 2초에 걸쳐 끔",
+  "type": "audio",
+  "src": "audio/00_opening.mp3",
+  "dur": null
+ },
+ {
   "id": "0",
   "scene": "프리쇼",
   "title": "관객 입장 · 시작 음악 (으스스, 약 5분)",
   "timing": "관객 입장 시간 · 공연 시작 전 F.O",
   "vol": 0.6,
+  "fadeOthers": 2,
+  "over": true,
   "note": "음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철 → 더 낮은 로비 왈츠, 한 번 재생 후 끝남(반복 없음). 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔",
   "type": "audio",
   "src": "audio/00_house_suite.mp3?v=8feb51c0",

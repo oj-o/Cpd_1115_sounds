@@ -768,7 +768,9 @@ def house_suite():
 # type: audio | stop      fadeOthers: GO 시 재생 중인 다른 큐를 몇 초에 걸쳐 페이드아웃
 # 이전 34큐 버전은 git 기록(c0e548c), 16큐 버전은 b1bd4dc에 있습니다.
 CUES = [
-    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 5분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, mp3=True, vol=0.6,
+    dict(id="OP", scene="프리쇼", title="관객 입장 · 오프닝 음악 (반복)", timing="하우스 오픈, 관객 입장 시작", file="00_opening", loop=True, vol=0.6, userFile=True,
+         note="유튜브 곡(youtu.be/_CzSCWpF7TM). audio/00_opening.mp3로 넣거나, 이 줄의 '음원 파일 선택'으로 고르면 이 컴퓨터 브라우저에 저장됨 · 다음 큐 0이 2초에 걸쳐 끔"),
+    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 5분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, mp3=True, vol=0.6, fadeOthers=2, over=True,
          note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철 → 더 낮은 로비 왈츠, 한 번 재생 후 끝남(반복 없음). 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
     dict(id="1",  scene="1장", title="전화벨 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring3", vol=0.8, fadeOthers=1,
          note="벨소리 3번(7초) 후 저절로 끝남 · 음악이 남아 있으면 1초에 걸쳐 꺼짐"),
@@ -841,8 +843,9 @@ def main():
             d["type"] = "audio"
             d["src"] = f'audio/{c["file"]}.' + ("wav" if os.path.exists(os.path.join(OUT, c["file"] + ".wav")) else "mp3")
             d["dur"] = meta.get(c["file"]) or _probe(os.path.join(ROOT, d["src"]))
-            with open(os.path.join(ROOT, d["src"]), "rb") as fh:          # 파일이 바뀌면 주소도 바뀌어 브라우저 캐시를 피함
-                d["src"] += "?v=" + hashlib.md5(fh.read()).hexdigest()[:8]
+            if os.path.exists(os.path.join(ROOT, d["src"])):           # 파일이 바뀌면 주소도 바뀌어 브라우저 캐시를 피함
+                with open(os.path.join(ROOT, d["src"]), "rb") as fh:
+                    d["src"] += "?v=" + hashlib.md5(fh.read()).hexdigest()[:8]
             d.pop("file")
         cues.append(d)
     with open(os.path.join(ROOT, "cues.js"), "w", encoding="utf-8") as f:
