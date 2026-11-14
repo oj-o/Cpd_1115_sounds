@@ -143,14 +143,14 @@ window.CUES = [
  {
   "id": "4A",
   "scene": "4장",
-  "title": "녹음 음성 3 (큐프3)",
+  "title": "녹음 음성 3 + 통화 종료음 (큐프3)",
   "timing": "4(벨소리) 뒤",
   "voice": true,
   "over": true,
-  "note": "배우 녹음 · 4번 벨소리가 울리는 중에 누르면 겹쳐 재생 · 페이드되지 않음",
+  "note": "배우 녹음 → 바로 통화 종료음 2번 · 4번 벨소리가 울리는 중에 누르면 겹쳐 재생 · 페이드되지 않음",
   "type": "audio",
-  "src": "audio/voice3.mp3?v=a6c5efdb",
-  "dur": 25.55
+  "src": "audio/voice3.mp3?v=20aa94a4",
+  "dur": 27.59
  },
  {
   "id": "5",
