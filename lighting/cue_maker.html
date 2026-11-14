@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>저승관리청 조명 큐 생성</title>
+<style>
+:root{
+  --bg:#0f0e14; --panel:#18161f; --raise:#211e2b; --line:#2e2a3b;
+  --fg:#ece9f5; --muted:#9590a8; --accent:#9d8cff; --go:#2fbf71; --warn:#ffb648; --stop:#ff5c5c; --light:#ffd36b;
+  --ui:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Segoe UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Consolas,"D2Coding",monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--ui)}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:17px;margin:0;font-weight:700}
+.back{color:var(--accent);text-decoration:none;font-weight:600}
+.back:hover{text-decoration:underline}
+.status{color:var(--muted);font-size:13px}
+.status.bad{color:var(--stop);font-weight:600}
+.status.ok{color:var(--go)}
+.spacer{flex:1}
+.btn{all:unset;box-sizing:border-box;padding:7px 12px;border-radius:8px;background:var(--raise);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn:focus-visible{outline:2px solid var(--accent)}
+.btn.main{background:var(--light);color:#2a1d00;border-color:var(--light)}
+.btn.warn{color:var(--stop);border-color:color-mix(in srgb,var(--stop) 45%,transparent)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0;align-items:start}
+main{padding:12px 16px 80px;min-width:0}
+aside{position:sticky;top:57px;max-height:calc(100vh - 57px);overflow:auto;border-left:1px solid var(--line);background:var(--panel);padding:14px 16px 40px}
+.banner{background:color-mix(in srgb,var(--warn) 14%,var(--bg));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px;display:none}
+.scene{margin:18px 0 6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.scene h2{font-size:15px;margin:0}
+.memo{color:var(--light);font-size:13px}
+.memo.extra{color:var(--muted)}
+.scene .btn{padding:3px 9px;font-size:12px}
+.cue{display:grid;grid-template-columns:26px 62px minmax(120px,1fr) 64px 82px minmax(180px,1.5fr) 30px;gap:6px;align-items:center;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
+.cue.off{opacity:.42}
+.cue.err{border-color:var(--stop)}
+.cue .l2{grid-column:2/-1;display:grid;grid-template-columns:62px minmax(160px,2fr) 54px minmax(120px,1fr);gap:6px}
+.cue .res{grid-column:2/-1;font:12px var(--mono);color:var(--muted)}
+.cue .res .e{color:var(--stop);font-family:var(--ui)}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 7px;min-width:0;width:100%}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+input.no{font:700 15px var(--mono);color:var(--light);text-align:center}
+input.cmd{font-family:var(--mono)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--light)}
+input.bad{border-color:var(--stop)}
+.x{all:unset;cursor:pointer;color:var(--muted);text-align:center;font-size:16px}
+.x:hover{color:var(--stop)}
+.hint{color:var(--muted);font-size:12px}
+.lbl{font-size:12px;color:var(--muted);letter-spacing:.05em;margin:16px 0 6px;font-weight:600}
+pre{font:12px/1.5 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:340px;overflow:auto;white-space:pre-wrap;margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+/* 비상 수동 조정 */
+.emg{border:1px solid color-mix(in srgb,var(--stop) 45%,transparent);border-radius:10px;padding:10px 12px;background:color-mix(in srgb,var(--stop) 6%,var(--panel))}
+.emg h3{margin:0 0 6px;font-size:14px;color:var(--stop)}
+.emg .cmdout{font:700 18px var(--mono);color:var(--light);background:var(--bg);border-radius:8px;padding:8px 10px;margin:8px 0;min-height:42px;word-break:break-all}
+.emg .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lv{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}
+.lv button{all:unset;text-align:center;padding:6px 0;border:1px solid var(--line);border-radius:6px;cursor:pointer;font:600 13px var(--mono)}
+.lv button:hover{border-color:var(--light)}
+.cheat{font-size:12.5px;margin:8px 0 0;padding-left:18px}
+.cheat li{margin:3px 0}
+code{font-family:var(--mono);color:var(--light)}
+@media (max-width:1000px){
+  .wrap{grid-template-columns:1fr}
+  aside{position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}
+  .cue{grid-template-columns:24px 56px 1fr 56px;}
+  .cue .cmdc{grid-column:2/-1}
+  .cue .l2{grid-template-columns:1fr 1fr}
+}
+@media print{
+  header,main,.noprint{display:none!important}
+  body{background:#fff;color:#000}
+  .wrap{display:block} aside{position:static;max-height:none;border:0;background:#fff;color:#000}
+  pre,.emg .cmdout{background:#fff;color:#000;border:1px solid #999}
+  code{color:#000}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../index.html">← 음향 큐</a>
+  <h1>조명 큐 생성 (MA dot2)</h1>
+  <span class="status" id="src">불러오는 중…</span>
+  <span class="status" id="chk"></span>
+  <span class="spacer"></span>
+  <button class="btn" id="memoOnly" type="button" title="메모에 적힌 큐만 켜고 프리쇼·하우스 인은 끔">메모 큐만</button>
+  <button class="btn" id="allOn" type="button">전체 선택</button>
+  <button class="btn warn" id="reset" type="button" title="이 브라우저에 저장된 편집을 지우고 저장소의 cues.csv로 되돌림">원래대로</button>
+  <button class="btn main" id="dl" type="button">큐 파일 저장 (cues.csv)</button>
+</header>
+
+<div class="wrap">
+<main>
+  <div class="banner" id="banner">이 브라우저에 저장된 편집본을 보고 있습니다. 저장소의 cues.csv와 다를 수 있습니다. 되돌리려면 "원래대로".</div>
+  <p class="hint">조명 순서 메모(노란 글씨) 아래에 그 장면의 큐가 있습니다. 체크한 큐만 큐 파일에 들어갑니다. <b>명령</b> 칸 규칙: <code>off</code> 암전 · <code>A</code>~<code>W</code> 룩 · <code>spot solo 80 amber desk</code> · <code>front 70</code> (lighting/README.md 참고). 편집은 이 브라우저에 자동 저장됩니다.</p>
+  <div id="list"></div>
+  <datalist id="looks"></datalist>
+</main>
+
+<aside>
+  <section class="emg" id="emg">
+    <h3>⚠ 비상 수동 조정 (dot2 명령)</h3>
+    <div class="hint">큐가 꼬이거나 조명이 잘못 나갈 때 dot2 명령줄에 그대로 입력합니다. 수동 값은 큐보다 우선하고, <code>Clear</code>를 누르면 큐 상태로 돌아갑니다.</div>
+    <div class="cmdout" id="eOut">–</div>
+    <div class="row noprint"><button class="btn" id="eCopy" type="button">명령 복사</button><span class="hint" id="eMsg"></span></div>
+
+    <div class="lbl">그룹 밝기 직접 올리기·내리기</div>
+    <div class="grid">
+      <select id="eGroup" aria-label="그룹"></select>
+      <input id="eLevel" type="number" min="0" max="100" value="70" aria-label="레벨 %">
+    </div>
+    <div class="lv" id="eLv"></div>
+
+    <div class="lbl">큐로 바로 이동</div>
+    <div class="grid">
+      <select id="eCue" aria-label="이동할 큐"></select>
+      <button class="btn" id="eGoto" type="button">Goto Cue 명령</button>
+    </div>
+
+    <div class="lbl">자주 쓰는 비상 명령</div>
+    <div class="row" id="eQuick"></div>
+
+    <div class="lbl">순서 (매뉴얼 '유사시 수동 조정'과 같음)</div>
+    <ol class="cheat">
+      <li><b>잘못된 큐로 넘어감</b> → <code>Goto Cue 번호</code> Enter (원하는 큐로 바로 점프). 한 칸 뒤로는 <b>Go−</b> 키. 너무 일찍 눌렀으면 <b>Pause</b> → 타이밍에 <b>Go</b>.</li>
+      <li><b>특정 조명만 이상함</b> → <code>Group 번호 At 레벨</code> Enter. 그 그룹만 수동으로 바뀝니다.</li>
+      <li><b>배우가 어둠 속에 있음</b> → <code>Group 3 At 80</code> (Front 80%)로 바로 살림.</li>
+      <li><b>돌려놓기</b> → <b>Clear</b>를 세 번(선택 해제 → 값 해제 → 전부 해제). 현재 큐 상태로 돌아갑니다.</li>
+      <li><b>순간적으로 다 꺼야 함</b> → <b>B.O.</b> 누르고 있기(누르는 동안만 전체 0). 길게 끌 땐 <code>Goto Cue</code>로 암전 큐(1, 4 등)로.</li>
+      <li><b>수동 조정 중엔 Store 금지</b> — 수동 값이 큐에 저장됩니다.</li>
+      <li><b>콘솔이 멈춤</b> → 객석등·작업등 벽 스위치, 무대감독에게 무전. 콘솔은 재부팅 후 <code>Goto Cue</code>로 이어서.</li>
+    </ol>
+    <div class="row noprint" style="margin-top:8px"><button class="btn" id="ePrint" type="button">비상 카드 인쇄</button></div>
+  </section>
+
+  <div class="noprint">
+    <div class="lbl">dot2 2단계(큐) 명령 미리보기 · 체크한 큐만</div>
+    <div class="row" style="margin-bottom:6px"><button class="btn" id="cpCmd" type="button">명령 복사</button><button class="btn" id="dlCmd" type="button">txt 저장</button></div>
+    <pre id="cmds"></pre>
+    <p class="hint">저장한 <code>cues.csv</code>를 lighting 폴더에 덮어쓰고 <code>0_큐파일_만들기.bat</code> → <code>2_큐_자동입력.bat</code> 순서로 실행하면 dot2에 들어갑니다.</p>
+  </div>
+</aside>
+</div>
+
+<script>
+/* 저장소 CSV를 못 읽을 때(파일로 직접 연 경우) 쓰는 기본값 — cues.csv 등과 같은 내용 */
+const DEFAULTS = {"cues": [{"큐": "0.5", "이름": "Preshow", "대본표시": "-", "GO 타이밍": "관객 입장 (하우스 오픈)", "Fade": "0", "Trig": "Go", "음향": "0", "명령": "house on, bg 15 blue", "메모": ""}, {"큐": "1", "이름": "House Out", "대본표시": "p.1", "GO 타이밍": "공연 시작: 시작 음악 F.O, 하우스 아웃", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전"}, {"큐": "2", "이름": "Paperwork", "대본표시": "p.1 ①", "GO 타이밍": "직원들이 자리에 앉아 서류 정리 시작", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "S", "메모": "스산하게, 어둡고 푸르게"}, {"큐": "3", "이름": "Bright", "대본표시": "p.1 ①", "GO 타이밍": "주인공 등장 \"여러분!!!\" 직전 ('밝은 조명.')", "Fade": "3", "Trig": "Go", "음향": "-", "명령": "A", "메모": "fade on"}, {"큐": "4", "이름": "BO Interview", "대본표시": "p.3", "GO 타이밍": "\"…장례식장에 갔습니다.\" 뒤", "Fade": "2", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전 → 면접장 세팅(동작)"}, {"큐": "5", "이름": "Interview", "대본표시": "p.3", "GO 타이밍": "면접장 세팅 끝 (면접관이 서류를 넘긴다)", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "I", "메모": "조명 서서히"}, {"큐": "6", "이름": "BO Scene2", "대본표시": "p.5", "GO 타이밍": "면접관 퇴장, \"…합격했으면 좋겠다!\" 뒤", "Fade": "2", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전 → 회의실 세팅"}, {"큐": "7", "이름": "Meeting", "대본표시": "p.5 ②", "GO 타이밍": "세팅 끝, 서류가 펄럭거리면", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "B", "메모": "조명 서서히"}, {"큐": "8", "이름": "BO Scene3", "대본표시": "p.9", "GO 타이밍": "'인사담당자가 먼저 퇴장한다' (컷)", "Fade": "0", "Trig": "Go", "음향": "-", "명령": "off", "메모": "컷 암전. 암전 중 녹음 메시지"}, {"큐": "9", "이름": "Office 3", "대본표시": "p.9", "GO 타이밍": "녹음 음성이 끝나면 바로", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "A", "메모": "조명 서서히 (페이드)"}, {"큐": "10", "이름": "BO Scene4", "대본표시": "p.11 ③", "GO 타이밍": "\"(머리를 감싼다.)\" (컷)", "Fade": "0", "Trig": "Go", "음향": "-", "명령": "off", "메모": "컷 암전"}, {"큐": "11", "이름": "Office 4", "대본표시": "p.11", "GO 타이밍": "주인공 \"팀장님!!!\"", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "A", "메모": "조명 서서히 (페이드)"}, {"큐": "12", "이름": "Solo Spot", "대본표시": "p.13", "GO 타이밍": "5장 \"이게 뭐지…\" (관객을 향한 독백)", "Fade": "3", "Trig": "Go", "음향": "-", "명령": "P", "메모": "주인공 스팟"}, {"큐": "13", "이름": "Full 5", "대본표시": "p.13", "GO 타이밍": "\"(팀장에게 다가간다.) 팀장님.\"", "Fade": "3", "Trig": "Go", "음향": "-", "명령": "A", "메모": "전체 전환"}, {"큐": "14", "이름": "BO Scene6", "대본표시": "p.16", "GO 타이밍": "'주인공은 서류를 받아 천천히 살펴본다.' 뒤", "Fade": "3", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전"}, {"큐": "15", "이름": "Desk 6", "대본표시": "p.16", "GO 타이밍": "6장 '주인공이 책상에 앉아 사망명부를 확인한다'", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "W", "메모": "메모에 없어 다른 장처럼 서서히로 잡음"}, {"큐": "16", "이름": "BO Scene7", "대본표시": "p.18 ④", "GO 타이밍": "선배님 퇴장 뒤 '조명이 바뀐다.'", "Fade": "2", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전"}, {"큐": "17", "이름": "Audit", "대본표시": "p.18", "GO 타이밍": "똑똑똑 (주인공이 감사팀장을 찾아간다)", "Fade": "4", "Trig": "Go", "음향": "-", "명령": "C", "메모": "감사팀장과의 대화"}, {"큐": "18", "이름": "BO Scene8", "대본표시": "p.20 ⑤", "GO 타이밍": "'감사팀장이 떠난다. … 암전'", "Fade": "3", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전"}, {"큐": "19", "이름": "Office 8", "대본표시": "p.20", "GO 타이밍": "노트북 소리와 함께 ('밝은 조명.')", "Fade": "2", "Trig": "Go", "음향": "-", "명령": "A", "메모": "노트북 소리 on"}, {"큐": "20", "이름": "Reaper Spot", "대본표시": "p.21", "GO 타이밍": "저승사자 \"(혼잣말) 출장비…\"", "Fade": "2", "Trig": "Go", "음향": "-", "명령": "T", "메모": "저승사자·팀장 스팟"}, {"큐": "21", "이름": "Full 8", "대본표시": "p.21", "GO 타이밍": "방송 뒤 '주인공이 나타난다'", "Fade": "2", "Trig": "Go", "음향": "5", "명령": "A", "메모": "방송 차임(음향 5)은 이 큐 전에"}, {"큐": "22", "이름": "BO Scene9", "대본표시": "p.21", "GO 타이밍": "\"…신입 좀 키워야지.\" 뒤 (8장 끝)", "Fade": "3", "Trig": "Go", "음향": "-", "명령": "off", "메모": "암전"}, {"큐": "23", "이름": "Full 9", "대본표시": "p.23 ⑥", "GO 타이밍": "전원 등장 '조명이 천천히 밝아진다.'", "Fade": "8", "Trig": "Go", "음향": "-", "명령": "E", "메모": "전체 등장 → on"}, {"큐": "24", "이름": "BO End", "대본표시": "p.25 ⑦", "GO 타이밍": "\"감사합니다!!!\" 뒤 '암전.' → 배우 퇴장", "Fade": "1", "Trig": "Go", "음향": "6", "명령": "off", "메모": "밝은 음악(음향 6)은 인사 직전부터"}, {"큐": "25", "이름": "Curtain Call", "대본표시": "p.25", "GO 타이밍": "커튼콜 입장", "Fade": "2", "Trig": "Go", "음향": "6", "명령": "F", "메모": "커튼콜 on"}, {"큐": "26", "이름": "House In", "대본표시": "-", "GO 타이밍": "커튼콜 인사 후 배우 퇴장", "Fade": "5", "Trig": "Go", "음향": "-", "명령": "house on", "메모": "하우스 인"}], "groups": [{"그룹": "1", "이름": "Spot", "선택": "Fixture 201 Thru 208", "대수": "8", "매 큐 0으로 초기화": "O", "색·위치": "O", "별칭": "스팟/무빙"}, {"그룹": "2", "이름": "Wash", "선택": "Fixture 101 Thru 110", "대수": "10", "매 큐 0으로 초기화": "O", "색·위치": "O", "별칭": "워시"}, {"그룹": "3", "이름": "Front", "선택": "Fixture 1 Thru 6 + 13 Thru 18", "대수": "12", "매 큐 0으로 초기화": "O", "색·위치": "", "별칭": "프런트/프론트/front light"}, {"그룹": "4", "이름": "Top", "선택": "Fixture 19 Thru 24", "대수": "6", "매 큐 0으로 초기화": "O", "색·위치": "", "별칭": "탑"}, {"그룹": "5", "이름": "Back", "선택": "Fixture 26 + 28 + 29 + 32 Thru 36", "대수": "8", "매 큐 0으로 초기화": "O", "색·위치": "", "별칭": "백"}, {"그룹": "6", "이름": "BG", "선택": "Fixture 301 Thru 310 + 37", "대수": "11", "매 큐 0으로 초기화": "O", "색·위치": "O", "별칭": "배경/background"}, {"그룹": "7", "이름": "Blinder", "선택": "Fixture 401 Thru 404", "대수": "4", "매 큐 0으로 초기화": "O", "색·위치": "", "별칭": "블라인더"}, {"그룹": "8", "이름": "House", "선택": "Fixture 601 Thru 616", "대수": "15", "매 큐 0으로 초기화": "O", "색·위치": "", "별칭": "하우스/객석"}, {"그룹": "9", "이름": "Fog", "선택": "Fixture 501", "대수": "1", "매 큐 0으로 초기화": "", "색·위치": "", "별칭": "포그"}, {"그룹": "10", "이름": "Spot Solo", "선택": "Fixture 202", "대수": "1", "매 큐 0으로 초기화": "", "색·위치": "O", "별칭": "솔로/주인공"}, {"그룹": "11", "이름": "Spot Pair", "선택": "Fixture 205 + 208", "대수": "2", "매 큐 0으로 초기화": "", "색·위치": "O", "별칭": "페어/감사팀장"}], "presets": [{"이름": "Office", "dot2 프리셋": "4.1", "종류": "색", "설명": "차가운 화이트 + 연보라 (Wash·BG·Spot)", "별칭": "오피스/사무실색"}, {"이름": "Meeting", "dot2 프리셋": "4.2", "종류": "색", "설명": "회의실 웜 화이트 (Wash·BG)", "별칭": "웜/회의실색"}, {"이름": "Amber", "dot2 프리셋": "4.3", "종류": "색", "설명": "앰버 (Wash·Spot)", "별칭": "앰버"}, {"이름": "Blue", "dot2 프리셋": "4.4", "종류": "색", "설명": "배경 블루 (BG)", "별칭": "블루/파랑"}, {"이름": "Curtain", "dot2 프리셋": "4.5", "종류": "색", "설명": "커튼콜 멀티 (Wash·BG·Spot)", "별칭": "멀티/커튼콜색"}, {"이름": "DownC", "dot2 프리셋": "2.1", "종류": "위치", "설명": "다운센터 독백 (Spot)", "별칭": "다운센터"}, {"이름": "Desk", "dot2 프리셋": "2.2", "종류": "위치", "설명": "주인공 책상 (Spot Solo)", "별칭": "책상"}, {"이름": "Audit", "dot2 프리셋": "2.3", "종류": "위치", "설명": "감사팀장 자리 (Spot Pair)", "별칭": "감사석"}, {"이름": "Sweep", "dot2 프리셋": "2.4", "종류": "위치", "설명": "커튼콜 객석 쪽 (Spot)", "별칭": "스윕"}, {"이름": "Talk", "dot2 프리셋": "2.5", "종류": "위치", "설명": "8장 저승사자·팀장 혼잣말 자리 (Spot)", "별칭": "혼잣말"}], "looks": [{"룩": "A", "명령": "front 70, top 60, wash 50, bg 30, office", "설명": "사무실 (1·3·4·5·8장)"}, {"룩": "B", "명령": "front 80, top 60, wash 50, bg 30, meeting", "설명": "회의실 (2장)"}, {"룩": "C", "명령": "front 55, top 30, wash 30 amber, back 40, bg 20 blue, spot pair 60 amber audit", "설명": "감사팀장과의 대화 (7장)"}, {"룩": "E", "명령": "front 85, top 70, wash 60, back 50, bg 40, office", "설명": "9장 풀 (A보다 한 단계 밝게)"}, {"룩": "F", "명령": "all on, curtain, spot sweep", "설명": "커튼콜"}, {"룩": "S", "명령": "top 25, wash 30 blue, back 20, bg 40 blue", "설명": "스산한 서류 정리 (1장 시작, 어둡고 푸르게)"}, {"룩": "I", "명령": "front 65, top 40, wash 40 meeting, bg 20 blue", "설명": "면접장 (1장)"}, {"룩": "P", "명령": "front 10, wash 10, bg 10 blue, spot solo 80 amber downc", "설명": "주인공 독백 스팟 (5장)"}, {"룩": "T", "명령": "front 15, wash 15 office, bg 15 blue, spot 80 amber talk", "설명": "저승사자·팀장 스팟 (8장 혼잣말)"}, {"룩": "W", "명령": "front 50, top 60, wash 40 office, bg 30, spot solo 50 desk", "설명": "6장 주인공 책상 (사무실보다 차분하게)"}]};
+
+/* 조명 순서 메모 — start: 이 장면이 시작하는 큐 번호, extra: 메모에 없는 큐(기본 해제) */
+const SCENES = [
+  {start:0,    name:"프리쇼",   memo:"관객 입장 (메모에 없음)", extra:true},
+  {start:1,    name:"1장",      memo:"암전 - 서류정리 - fade on"},
+  {start:4,    name:"면접장",   memo:"암전 → 동작 → 조명 서서히"},
+  {start:6,    name:"2장",      memo:"암전 → 동작 → 조명 서서히 / 펄럭거리면"},
+  {start:8,    name:"3장",      memo:"암전 → 동작 → 조명 서서히 · 컷-페이드 · 녹음 음성 끝나면 바로"},
+  {start:10,   name:"4장",      memo:"암전 → 동작 → 조명 서서히 · 컷-페이드 · *팀장님"},
+  {start:12,   name:"5장",      memo:"주인공 spot → 전체 전환"},
+  {start:14,   name:"6장",      memo:"암전 →"},
+  {start:16,   name:"7장",      memo:"선배님 → 암전 · 똑똑똑"},
+  {start:18,   name:"8장",      memo:"암전 · 노트북소리 on"},
+  {start:20,   name:"8장 스팟", memo:"(저승사자-팀장+주인공) spot - 팀장 → (방송) → 전체"},
+  {start:22,   name:"9장",      memo:"암전 - 전체등장 → on"},
+  {start:24,   name:"커튼콜",   memo:"퇴장 암전 → 커튼콜 on"},
+  {start:26,   name:"하우스 인", memo:"배우 퇴장 후 객석등 (메모에 없음)", extra:true},
+];
+const COLS = ["큐","이름","대본표시","GO 타이밍","Fade","Trig","음향","명령","메모"];
+const TYPEABLE = /^[A-Za-z0-9 .\-+]*$/;
+const KEY = "cpd1115_light_cues_v1";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => { const f = parseFloat(n); return isFinite(f) ? String(+f.toFixed(3)) : String(n).trim(); };
+
+/* ── CSV ── */
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i+1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  const head = (rows.shift() || []).map(h => h.trim());
+  return rows.filter(r => r.some(v => v.trim())).map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || "").trim()])));
+}
+const csvCell = v => /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+
+/* ── 그룹·프리셋·룩 ── */
+let G = [], PRE = {}, LOOKS = {}, LOOKDESC = {};
+function setRefs(groups, presets, looks) {
+  const yes = v => ["O","Y","YES","1","TRUE"].includes((v || "").toUpperCase());
+  G = groups.map(r => ({no:parseInt(r["그룹"]), name:r["이름"], expected:r["대수"], reset:yes(r["매 큐 0으로 초기화"]), color:yes(r["색·위치"]),
+        alias:(r["별칭"] || "").split("/").map(a => a.trim().toLowerCase()).filter(Boolean)})).filter(g => g.no);
+  PRE = {}; presets.forEach(r => { PRE[r["이름"]] = {num:fmt(r["dot2 프리셋"]), kind:r["종류"], desc:r["설명"], alias:(r["별칭"] || "").split("/").map(a => a.trim().toLowerCase()).filter(Boolean)}; });
+  LOOKS = {}; LOOKDESC = {}; looks.forEach(r => { if (r["룩"]) { LOOKS[r["룩"].toLowerCase()] = r["명령"]; LOOKDESC[r["룩"]] = r["설명"]; } });
+}
+/* dot2_cues.py의 Parser와 같은 규칙 */
+function applyCmd(text, lv, at, depth = 0) {
+  const errs = [];
+  if (depth > 5) return ["룩이 서로를 계속 부릅니다."];
+  const gnames = [];
+  G.forEach(g => [g.name.toLowerCase(), ...g.alias].forEach(n => gnames.push([n.split(/\s+/), g])));
+  gnames.sort((a, b) => b[0].length - a[0].length);
+  const pnames = {}; Object.entries(PRE).forEach(([p, v]) => [p.toLowerCase(), ...v.alias].forEach(n => pnames[n] = p));
+  for (const item of text.split(/[,;/]/).map(s => s.trim()).filter(Boolean)) {
+    const low = item.toLowerCase(), toks = low.split(/\s+/);
+    if (LOOKS[low] !== undefined) { errs.push(...applyCmd(LOOKS[low], lv, at, depth + 1)); continue; }
+    if (["off","bo","blackout","암전","all off"].includes(low)) { G.forEach(g => { if (g.reset) lv[g.name] = 0; }); continue; }
+    let targets = null, rest = toks;
+    if (toks[0] === "all" || toks[0] === "전체") { targets = G.filter(g => g.reset && !["blinder","house","fog"].includes(g.name.toLowerCase())); rest = toks.slice(1); }
+    else for (const [nt, g] of gnames) if (nt.every((t, i) => toks[i] === t)) { targets = [g]; rest = toks.slice(nt.length); break; }
+    if (!targets) {
+      for (const t of toks) {
+        const p = pnames[t];
+        if (!p) { errs.push(`'${t}'는 그룹·프리셋·룩 이름이 아닙니다.`); continue; }
+        const kind = PRE[p].kind;
+        if (kind === "위치") { errs.push(`위치 프리셋 '${p}'는 그룹과 함께 쓰세요 (예: spot ${p.toLowerCase()}).`); continue; }
+        const on = G.filter(g => g.color && (lv[g.name] || 0) > 0);
+        if (!on.length) errs.push(`'${p}'를 받을 켜진 색 그룹이 없습니다.`);
+        on.forEach(g => at[g.name + "|" + kind] = p);
+      }
+      continue;
+    }
+    if (!rest.length) { errs.push(`'${item}': 그룹 뒤에 on/off, 숫자, 프리셋 중 하나를 쓰세요.`); continue; }
+    for (const t of rest) {
+      let val;
+      if (["on","켬","full"].includes(t)) val = 100;
+      else if (["off","끔"].includes(t)) val = 0;
+      else if (/^\d+(\.\d+)?%?$/.test(t)) { val = parseFloat(t); if (val > 100) { errs.push(`'${item}': 레벨 ${t}는 0~100입니다.`); continue; } }
+      else {
+        const p = pnames[t];
+        if (!p) { errs.push(`'${item}': '${t}'를 알 수 없습니다.`); continue; }
+        targets.forEach(g => { if (!g.color) errs.push(`'${item}': ${g.name}는 색·위치가 없는 디머 그룹입니다.`); else at[g.name + "|" + PRE[p].kind] = p; });
+        continue;
+      }
+      targets.forEach(g => lv[g.name] = val);
+    }
+  }
+  return errs;
+}
+
+/* ── 상태 ── */
+let cues = [];   // {큐,이름,...,on:bool}
+let fromRepo = false;
+const sceneOf = no => { const n = parseFloat(no); let s = SCENES[0]; for (const x of SCENES) if (n >= x.start) s = x; return s; };
+function save() { try { localStorage.setItem(KEY, JSON.stringify(cues)); } catch (e) {} $("banner").style.display = "block"; }
+
+function evalCue(c) {
+  const lv = {}, at = {}, errs = [];
+  G.forEach(g => { if (g.reset) lv[g.name] = 0; });
+  if (c["명령"]) errs.push(...applyCmd(c["명령"], lv, at)); else errs.push("명령이 비어 있습니다.");
+  if (!TYPEABLE.test(c["이름"] || "")) errs.push("이름은 영문·숫자·공백·. - + 만 (dot2 입력용). 한글은 GO 타이밍·메모에.");
+  const f = c["Fade"] === "" ? 0 : Number(c["Fade"]);
+  if (!isFinite(f) || f < 0) errs.push("Fade는 0 이상 숫자(초).");
+  return {lv, at, errs};
+}
+function check() {
+  const on = cues.filter(c => c.on);
+  const bad = new Map();
+  let prev = -Infinity; const seen = new Set();
+  on.forEach(c => {
+    const n = parseFloat(c["큐"]); const e = [];
+    if (!isFinite(n)) e.push("큐 번호가 숫자가 아닙니다.");
+    else { if (seen.has(n)) e.push(`큐 ${fmt(n)}가 두 번 나옵니다.`); if (n <= prev) e.push(`큐 ${fmt(n)}가 앞 큐보다 작습니다 (오름차순).`); prev = n; seen.add(n); }
+    if (e.length) bad.set(c, e);
+  });
+  return bad;
+}
+function commands(list) {
+  const out = [];
+  list.forEach(c => {
+    const {lv, at} = evalCue(c);
+    out.push(`\n# 큐 ${fmt(c["큐"])} ${c["이름"]}  — ${c["GO 타이밍"]}`);
+    const levels = Object.entries(lv).map(([n, v]) => [G.find(g => g.name === n), v])
+      .sort((a, b) => (!a[0].reset - !b[0].reset) || (G.indexOf(a[0]) - G.indexOf(b[0])));
+    levels.forEach(([g, v]) => out.push(`Group ${g.no} At ${+(+v).toFixed(3)}`));
+    Object.entries(at).map(([k, p]) => { const [n, kind] = k.split("|"); return [G.find(g => g.name === n), kind, p]; })
+      .sort((a, b) => ((a[1] === "위치") - (b[1] === "위치")) || (G.indexOf(a[0]) - G.indexOf(b[0])))
+      .forEach(([g, , p]) => out.push(`Group ${g.no} At Preset ${PRE[p].num}`));
+    out.push(`Store Cue ${fmt(c["큐"])} Fade ${fmt(c["Fade"] || 0)}`);
+    if (c["이름"]) { out.push(`Label Cue ${fmt(c["큐"])}`); out.push(`[이름창] ${c["이름"]}`); }
+  });
+  return out.join("\n").trim();
+}
+
+/* ── 그리기 ── */
+function summary(lv, at) {
+  const parts = Object.entries(lv).filter(([, v]) => v > 0).map(([n, v]) => {
+    const extra = Object.entries(at).filter(([k]) => k.startsWith(n + "|")).map(([, p]) => p).join(" ");
+    return `${n} ${v}${extra ? " " + extra : ""}`;
+  });
+  return parts.length ? parts.join(" · ") : "전부 꺼짐 (암전)";
+}
+function render() {
+  cues.sort((a, b) => parseFloat(a["큐"]) - parseFloat(b["큐"]));
+  const bad = check();
+  let html = "", lastScene = null, errCount = 0;
+  cues.forEach((c, i) => {
+    const s = sceneOf(c["큐"]);
+    if (s !== lastScene) {
+      html += `<div class="scene"><h2>${esc(s.name)}</h2><span class="memo${s.extra ? " extra" : ""}">${esc(s.memo)}</span><button class="btn" type="button" data-add="${s.start}">+ 큐</button></div>`;
+      lastScene = s;
+    }
+    const r = evalCue(c), e = [...r.errs, ...(bad.get(c) || [])];
+    if (c.on && e.length) errCount++;
+    html += `<div class="cue${c.on ? "" : " off"}${c.on && e.length ? " err" : ""}" data-i="${i}">
+      <input type="checkbox" data-k="on" ${c.on ? "checked" : ""} aria-label="큐 파일에 넣기">
+      <input class="no" data-k="큐" value="${esc(c["큐"])}" aria-label="큐 번호">
+      <input data-k="이름" value="${esc(c["이름"])}" placeholder="이름(영문)" class="${TYPEABLE.test(c["이름"] || "") ? "" : "bad"}">
+      <input data-k="Fade" value="${esc(c["Fade"])}" placeholder="Fade" title="페이드(초)">
+      <select data-k="Trig" title="Trig">${["Go","Follow"].map(t => `<option${(c["Trig"] || "Go") === t ? " selected" : ""}>${t}</option>`).join("")}</select>
+      <input class="cmd cmdc" data-k="명령" value="${esc(c["명령"])}" list="looks" placeholder="명령 (off, A, spot on …)">
+      <button class="x" type="button" data-del="${i}" title="큐 삭제">✕</button>
+      <div class="l2">
+        <input data-k="대본표시" value="${esc(c["대본표시"])}" placeholder="대본">
+        <input data-k="GO 타이밍" value="${esc(c["GO 타이밍"])}" placeholder="GO 타이밍">
+        <input data-k="음향" value="${esc(c["음향"])}" placeholder="♪" title="같이 나가는 음향 큐">
+        <input data-k="메모" value="${esc(c["메모"])}" placeholder="메모">
+      </div>
+      <div class="res">${e.length ? e.map(x => `<div class="e">⚠ ${esc(x)}</div>`).join("") : "→ " + esc(summary(r.lv, r.at))}</div>
+    </div>`;
+  });
+  $("list").innerHTML = html;
+  const on = cues.filter(c => c.on);
+  $("chk").textContent = errCount ? `고칠 곳 ${errCount}개` : `큐 ${on.length}개 · 이상 없음`;
+  $("chk").className = "status " + (errCount ? "bad" : "ok");
+  $("cmds").textContent = commands(on);
+  $("eCue").innerHTML = on.map(c => `<option value="${esc(fmt(c["큐"]))}">${esc(fmt(c["큐"]))} ${esc(c["이름"])} — ${esc(c["GO 타이밍"]).slice(0, 26)}</option>`).join("");
+}
+
+/* 편집 */
+$("list").addEventListener("input", e => {
+  const box = e.target.closest(".cue"); if (!box || !e.target.dataset.k) return;
+  const c = cues[+box.dataset.i], k = e.target.dataset.k;
+  if (k === "on") c.on = e.target.checked; else c[k] = e.target.value;
+  save();
+  if (k === "on" || k === "Trig") { render(); return; }
+  /* 입력 중 포커스를 잃지 않도록 결과 줄만 갱신, 번호는 칸을 떠날 때 다시 정렬 */
+  const r = evalCue(c), bad = check(), errs = [...r.errs, ...(bad.get(c) || [])];
+  box.querySelector(".res").innerHTML = errs.length ? errs.map(x => `<div class="e">⚠ ${esc(x)}</div>`).join("") : "→ " + esc(summary(r.lv, r.at));
+  box.classList.toggle("err", c.on && errs.length > 0);
+  $("cmds").textContent = commands(cues.filter(x => x.on));
+});
+$("list").addEventListener("change", e => { if (e.target.dataset.k === "큐") render(); });
+$("list").addEventListener("click", e => {
+  const add = e.target.dataset.add, del = e.target.dataset.del;
+  if (add !== undefined) {
+    const s = SCENES.find(x => String(x.start) === add), ix = SCENES.indexOf(s);
+    const next = SCENES[ix + 1] ? SCENES[ix + 1].start : Infinity;
+    const inScene = cues.filter(c => { const n = parseFloat(c["큐"]); return n >= s.start && n < next; }).map(c => parseFloat(c["큐"]));
+    const last = inScene.length ? Math.max(...inScene) : s.start;
+    let no = inScene.length ? last + (isFinite(next) ? (next - last) / 2 : 1) : (s.start || 0.5);
+    no = Math.round(no * 100) / 100;
+    cues.push({"큐":fmt(no),"이름":"New","대본표시":"","GO 타이밍":"","Fade":"3","Trig":"Go","음향":"-","명령":"off","메모":"",on:true});
+    save(); render();
+  } else if (del !== undefined) {
+    const c = cues[+del];
+    if (confirm(`큐 ${fmt(c["큐"])} ${c["이름"]}을(를) 지울까요?`)) { cues.splice(+del, 1); save(); render(); }
+  }
+});
+$("memoOnly").onclick = () => { cues.forEach(c => c.on = !sceneOf(c["큐"]).extra); save(); render(); };
+$("allOn").onclick = () => { cues.forEach(c => c.on = true); save(); render(); };
+$("reset").onclick = () => { if (!confirm("이 브라우저의 편집을 지우고 저장소 cues.csv로 되돌릴까요?")) return; try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); };
+
+/* 저장 */
+function download(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$("dl").onclick = () => {
+  const on = cues.filter(c => c.on);
+  const bad = check(); const errs = on.filter(c => evalCue(c).errs.length || bad.has(c));
+  if (errs.length && !confirm(`고칠 곳이 있는 큐가 ${errs.length}개 있습니다 (${errs.map(c => fmt(c["큐"])).join(", ")}). 그래도 저장할까요?\n(이대로면 0_큐파일_만들기.bat이 오류를 알려 줍니다)`)) return;
+  const lines = [COLS.join(",")].concat(on.map(c => COLS.map(k => csvCell(k === "큐" || k === "Fade" ? fmt(c[k] || (k === "Fade" ? 0 : "")) : (c[k] || ""))).join(",")));
+  download("cues.csv", "﻿" + lines.join("\r\n") + "\r\n", "text/csv;charset=utf-8");
+};
+const copy = (text, el) => { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => { if (el) { el.textContent = "복사됨"; setTimeout(() => el.textContent = "", 1500); } }).catch(() => prompt("복사하세요:", text)); };
+$("cpCmd").onclick = () => copy($("cmds").textContent);
+$("dlCmd").onclick = () => download("dot2_cues_stage2.txt", "# 조명 큐 생성 페이지에서 만든 dot2 2단계(큐) 명령\n# [이름창] 줄은 Label 뒤 뜨는 이름 창에 입력\n\n" + $("cmds").textContent + "\n", "text/plain;charset=utf-8");
+
+/* 비상 수동 조정 */
+let eCmd = "";
+const setE = (cmd) => { eCmd = cmd; $("eOut").textContent = cmd; };
+function buildEmg() {
+  $("eGroup").innerHTML = G.map(g => `<option value="${g.no}">Group ${g.no} · ${esc(g.name)}${g.alias[0] ? " (" + esc(g.alias[0]) + ")" : ""}</option>`).join("");
+  $("eGroup").value = (G.find(g => g.name === "Front") || G[0] || {}).no;
+  $("eLv").innerHTML = [0, 30, 50, 80, 100].map(v => `<button type="button" data-v="${v}">${v}</button>`).join("");
+  const front = G.find(g => g.name === "Front"), top = G.find(g => g.name === "Top"), wash = G.find(g => g.name === "Wash"), house = G.find(g => g.name === "House");
+  const Q = [];
+  if (front && top && wash) Q.push(["무대 기본 밝기", `Group ${front.no} + ${top.no} + ${wash.no} At 70`]);
+  if (front) Q.push(["앞 조명만 살림", `Group ${front.no} At 80`]);
+  if (house) Q.push(["객석등 켬 (또는 페이더 1)", `Group ${house.no} At 100`]);
+  Q.push(["수동 값 해제", "Clear (3번)"], ["순간 암전", "B.O. 키 누르고 있기"], ["한 큐 뒤로", "Go− 키"], ["페이드 멈춤", "Pause 키"]);
+  $("eQuick").innerHTML = Q.map(([l, c]) => `<button class="btn" type="button" data-c="${esc(c)}">${esc(l)}</button>`).join("");
+  const upd = () => { const v = Math.max(0, Math.min(100, Number($("eLevel").value) || 0)); setE(`Group ${$("eGroup").value} At ${v}`); };
+  $("eGroup").onchange = upd; $("eLevel").oninput = upd;
+  $("eLv").onclick = e => { if (e.target.dataset.v) { $("eLevel").value = e.target.dataset.v; upd(); } };
+  $("eGoto").onclick = () => setE(`Goto Cue ${$("eCue").value}`);
+  $("eCue").onchange = () => setE(`Goto Cue ${$("eCue").value}`);
+  $("eQuick").onclick = e => { if (e.target.dataset.c) setE(e.target.dataset.c); };
+  $("eCopy").onclick = () => copy(eCmd.replace(/ \(3번\)| 키.*$/, ""), $("eMsg"));
+  $("ePrint").onclick = () => window.print();
+  upd();
+}
+
+/* ── 시작: 저장소 CSV(웹) → 없으면 기본값 → 브라우저 편집본 ── */
+async function getCSV(name) {
+  const r = await fetch(name + "?t=" + Date.now(), {cache:"no-store"});
+  if (!r.ok) throw new Error(name);
+  return parseCSV(await r.text());
+}
+(async () => {
+  let data;
+  try {
+    const [c, g, p, l] = await Promise.all(["cues.csv","groups.csv","presets.csv","looks.csv"].map(getCSV));
+    data = {cues:c, groups:g, presets:p, looks:l}; fromRepo = true;
+  } catch (e) { data = DEFAULTS; }
+  setRefs(data.groups, data.presets, data.looks);
+  $("looks").innerHTML = Object.keys(LOOKDESC).map(k => `<option value="${esc(k)}">${esc(LOOKDESC[k])}</option>`).join("") +
+    ["off","house on","spot on","all on, blinder on"].map(v => `<option value="${v}">`).join("");
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  if (Array.isArray(saved) && saved.length) { cues = saved; $("banner").style.display = "block"; }
+  else cues = data.cues.map(r => ({...Object.fromEntries(COLS.map(k => [k, r[k] || ""])), on: !sceneOf(r["큐"]).extra}));
+  $("src").textContent = fromRepo ? "저장소 cues.csv 기준" : "내장 기본값 기준 (파일로 연 경우)";
+  buildEmg(); render();
+})();
+</script>
+</body>
+</html>

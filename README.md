@@ -11,6 +11,7 @@ cue_package/
 │   ├─ render_cues.py  ← audio/ 음원을 다시 만드는 Python 스크립트
 │   └─ generate_ml.py  ← (선택) ML 모델로 음원을 새로 생성
 ├─ lighting/           ← 조명 큐: MA dot2 자동 입력 스크립트 (lighting/README.md 참고)
+│   └─ cue_maker.html  ← 웹 조명 큐 생성 + 비상 수동 조정 (큐 플레이어 우측 하단 '💡 조명 큐 생성' 버튼)
 └─ README.md
 ```
 

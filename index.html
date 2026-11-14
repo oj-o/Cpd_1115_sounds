@@ -104,6 +104,10 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   .list{overflow:visible}
   .scene,.tags{display:none}
 }
+.lightlink{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:20;display:flex;align-items:center;gap:6px;padding:10px 16px;border-radius:999px;background:#ffd36b;color:#2a1d00;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.45)}
+.lightlink:hover{filter:brightness(1.05)}
+.lightlink:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.active{padding-bottom:72px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -146,6 +150,8 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     <section class="active" id="active"><p class="empty">재생 중인 큐가 없습니다.</p></section>
   </aside>
 </div>
+
+<a class="lightlink" href="lighting/cue_maker.html" title="조명 큐 생성 · 비상 수동 조정 (새 탭)" target="_blank" rel="noopener">💡 조명 큐 생성 →</a>
 
 <script src="cues.js?v=20261114b"></script>
 <script>
