@@ -296,6 +296,34 @@ def write_commands(D, path):
     if follow: lines.append(f"\n# 2단계 후 손으로: 큐 {', '.join(follow)}의 Trig를 Follow로 바꾸세요.")
     with open(path, "w", encoding="utf-8") as f: f.write("\n".join(lines) + "\n")
 
+def look_commands(D):
+    """수동 운용용: looks.csv의 룩마다 그룹 레벨·프리셋 명령 (룩 페이더에 Store할 내용)"""
+    gby = {g["name"]: g for g in D["groups"]}
+    P = Parser(D["groups"], D["presets"], D["looks"])
+    out = []
+    first = {}                                        # 공연에 처음 나오는 순서대로 페이더 번호를 매김
+    for i, c in enumerate(D["cues"]):
+        for item in re.split(r"[,;/]", c["cmd"].lower()):
+            first.setdefault(item.strip(), i)
+    for name in sorted(D["looks"], key=lambda n: first.get(n, 999)):
+        lv, at = {}, {}
+        for g in D["groups"]:
+            if g["reset"]: lv[g["name"]] = 0
+        P.apply(name, lv, at)
+        cmds = [f"Group {gby[n]['no']} At {v}" for n, v in lv.items() if v]       # 0인 그룹은 넣지 않음 (페이더를 내리면 꺼짐)
+        cmds += [f"Group {gby[n]['no']} At Preset {D['presets'][p][0]}" for (n, k), p in
+                 sorted(at.items(), key=lambda t: t[0][1] == "위치") if lv.get(n, 0)]
+        out.append((name.upper(), cmds))
+    return out
+
+def write_looks(D, path, descs):
+    lines = ["# 수동 운용용 룩 페이더 — dot2_cues.py가 looks.csv로 만든 파일입니다.",
+             "# 룩마다: Clear 두 번 → 아래 줄 입력(각 줄 끝에 Please) → Store → fader wing 빈 페이더의 버튼 → Clear 두 번", ""]
+    for i, (name, cmds) in enumerate(look_commands(D), 1):
+        lines.append(f"## 룩 {name}  (룩 페이더 L{i}) — {descs.get(name, '')}")
+        lines += [f"  {c}" for c in cmds] + [""]
+    with open(path, "w", encoding="utf-8") as f: f.write("\n".join(lines))
+
 def write_sheet(D, path):
     """인쇄용 조명 큐시트 (브라우저로 열어 인쇄)"""
     e = html.escape
@@ -435,6 +463,8 @@ def main():
     elif a.mode in ("build", "list"):
         write_commands(D, os.path.join(HERE, "dot2_commands.txt"))
         write_sheet(D, os.path.join(HERE, "cue_sheet.html"))
+        descs = {r["룩"].upper(): r.get("설명", "") for r in read_csv("looks.csv") if r.get("룩")}
+        write_looks(D, os.path.join(HERE, "dot2_looks.txt"), descs)
         print(f"만들었습니다 · dot2_commands.txt (1단계 {n1}줄, 2단계 {n2}줄), cue_sheet.html (큐 {len(D['cues'])}개)")
     elif a.mode == "show":
         run_show(D, a.delay)
