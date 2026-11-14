@@ -492,6 +492,117 @@ def cheerful_ending():
     tm = theremin(th, bpm, E + 8, level=0.2)
     return mix(len(x) / SR, [(0, x), (0, tm[:len(x)])])
 
+# ── 2026.11.14: 9장(6)·커튼콜(6B) — 스윙 아닌 경쾌한 저승 스타일, 서로 다른 곡 ──
+def _bars(notes):                       # [(길이, 음), ...] 마디 단위 나열 → (박, 길이, 음)
+    out, b = [], 0.0
+    for d, p in notes: out.append((b, d, p)); b += d
+    return out
+D_, Bm_, G_, A_, Em_, C_, Am_ = [62, 66, 69], [59, 62, 66], [55, 59, 62], [57, 61, 64], [55, 59, 64], [55, 60, 64], [57, 60, 64]
+BOUNCE_A = _bars([(.5, 74), (.5, 78), (.5, 81), (.5, 78), (1, 79), (1, 76), (.5, 74), (.5, 76), (.5, 78), (.5, 79), (2, 81),
+                  (.5, 83), (.5, 81), (.5, 79), (.5, 78), (1, 76), (1, 73), (.5, 74), (.5, 73), (.5, 74), (.5, 76), (2, 78),
+                  (.5, 74), (.5, 78), (.5, 81), (.5, 78), (1, 79), (1, 76), (.5, 74), (.5, 76), (.5, 78), (.5, 79), (1, 81), (1, 85),
+                  (1, 86), (.5, 85), (.5, 83), (1, 81), (1, 78), (.5, 76), (.5, 73), (.5, 76), (.5, 73), (2, 74)])
+BOUNCE_A_CH = [D_, Bm_, G_, A_, D_, Bm_, G_, D_]
+BOUNCE_B = _bars([(.5, 79), (.5, 79), (1, 83), (.5, 81), (.5, 79), (1, 78), (.5, 76), (.5, 76), (1, 79), (2, 78),
+                  (.5, 76), (.5, 76), (1, 81), (.5, 79), (.5, 78), (1, 76), (.5, 74), (.5, 76), (.5, 78), (.5, 79), (2, 81),
+                  (.5, 79), (.5, 79), (1, 83), (.5, 81), (.5, 79), (1, 78), (.5, 76), (.5, 76), (1, 79), (2, 78),
+                  (1, 83), (1, 81), (1, 78), (1, 76), (.5, 81), (.5, 78), (.5, 76), (.5, 78), (2, 79)])
+BOUNCE_B_CH = [G_, Em_, C_, D_, G_, Em_, Am_, G_]
+
+def bouncy_bureau():
+    """9장 장면 음악: '저승 관청 바운스' — 126bpm, 곧은 8분음표(스윙 아님), D장조 ↔ G장조, 밝고 통통 튀게
+    마림바·첼레스타 선율, 피치카토 현·바순 대선율, 하프시코드 오프비트, 셰이커·가벼운 킥/스네어,
+    저승 색은 밝은 오르간 찌르기·테레민 한 소절·도장 소리로만. 약 5분, 끊김 없이 반복"""
+    bpm = 126
+    s = Score(bpm).prog(0, 12, 100, 50, 40).prog(1, 32, 102, 64, 30).prog(2, 8, 88, 80, 50).prog(3, 6, 70, 40, 40) \
+                  .prog(4, 45, 88, 70, 40).prog(5, 70, 84, 58, 40).prog(6, 17, 60, 64, 50).prog(9, 0, 90)
+    def block(o, mel, chs, kind, k=0):
+        s.seq(0, mel, 96, o, k)                                            # 마림바
+        if kind in ("mid", "full"): s.seq(2, mel, 74, o + .01, k + 12)      # 첼레스타 위 옥타브
+        if kind == "full": s.seq(5, [(b, d, p - 12) for b, d, p in mel if d >= 1], 74, o, k)   # 바순: 긴 음만 아래에서
+        for j, ch in enumerate(chs):
+            b0 = o + j * 4; root = ch[0] - 12 if ch[0] >= 57 else ch[0]
+            for b in range(4):
+                s.n(1, b0 + b, .4, (root if b % 2 == 0 else root + 7) + k - 12, 100)          # 통통 튀는 베이스
+                s.n(3, b0 + b + .5, .2, [p + k for p in ch], 60 if kind != "light" else 50)    # 하프시코드 오프비트
+                s.n(9, b0 + b, .12, 70, 50); s.n(9, b0 + b + .5, .1, 70, 36)                # 셰이커
+                if kind != "light":
+                    s.n(9, b0 + b, .2, 36 if b % 2 == 0 else 38, 72 if b % 2 == 0 else 58)
+            if kind != "light": s.n(4, b0 + 1, .25, [p + k + 12 for p in ch], 58); s.n(4, b0 + 3, .25, [p + k + 12 for p in ch], 54)  # 피치카토
+            if kind == "full" and j % 2 == 1: s.n(6, b0 + 3.5, .4, [p + k for p in ch], 70)  # 밝은 오르간 찌르기
+    plan = [("A", "light"), ("A", "mid"), ("B", "mid"), ("A", "full"), ("B", "light"), ("B", "full"), ("A", "mid"),
+            ("A", "full"), ("B", "mid"), ("A", "light"), ("B", "full"), ("A", "full"), ("B", "mid"), ("A", "mid"),
+            ("B", "full"), ("A", "light"), ("B", "mid"), ("A", "full"), ("B", "full"), ("A", "full")]
+    o = 0; th = []; parts = []
+    for i, (sec, kind) in enumerate(plan):
+        block(o, BOUNCE_A if sec == "A" else BOUNCE_B, BOUNCE_A_CH if sec == "A" else BOUNCE_B_CH, kind)
+        s.n(9, o, 1.5, 49 if kind == "full" else 53, 70 if kind == "full" else 50)
+        if i % 4 == 2: th += [(o + 28, 1, 81), (o + 29, 1, 83), (o + 30, 2, 86)]       # 블록 끝에 테레민 '우-'
+        if i % 3 == 1: parts.append((s.sec(o + 15), stamp() * 0.3))                     # 도장 '쾅'
+        o += 32
+    x = loop_wrap(s.render(4), s.sec(o))
+    tm = theremin(th, bpm, o + 8, level=0.16)
+    return mix(len(x) / SR, [(0, x), (0, tm[:len(x)])] + parts)
+
+F_, C7_, Bb_, Dm_ = [65, 69, 72], [64, 67, 70], [62, 65, 70], [62, 65, 69]
+PARADE_A = _bars([(.5, 72), (.5, 77), (.5, 81), (1.5, 84), (1, 81), (.5, 82), (.5, 81), (.5, 79), (.5, 77), (2, 79),
+                  (.5, 70), (.5, 74), (.5, 77), (1.5, 82), (1, 81), (.5, 79), (.5, 77), (.5, 76), (.5, 74), (2, 72),
+                  (.5, 72), (.5, 77), (.5, 81), (1.5, 84), (1, 81), (.5, 82), (.5, 84), (.5, 86), (.5, 84), (1, 82), (1, 81),
+                  (.5, 79), (.5, 81), (.5, 82), (.5, 79), (1, 76), (1, 79), (1, 77), (1, 72), (2, 77)])
+PARADE_A_CH = [F_, C7_, Bb_, C7_, F_, Bb_, C7_, F_]
+PARADE_T = _bars([(1.5, 77), (.5, 79), (1, 81), (1, 82), (3, 84), (1, 82), (1.5, 81), (.5, 79), (1, 77), (1, 74), (4, 79),
+                  (1.5, 77), (.5, 79), (1, 81), (1, 82), (2, 86), (1, 84), (1, 82), (1, 81), (1, 79), (1, 77), (1, 76), (4, 77)])
+PARADE_T_CH = [F_, F_, Bb_, C7_, F_, Bb_, C7_, F_]
+
+def underworld_parade():
+    """커튼콜: '저승 퍼레이드' — 138bpm 행진(스윙 아님), F장조 팡파르 ↔ 트리오, 6번보다 빠르고 다른 스타일
+    트럼펫·글로켄 팡파르, 브라스·튜바·행진 스네어, 하프시코드 대선율, 트리오는 호른·현 + 테레민 대선율,
+    중간 '저승 장난' 2마디(우드블록·바순), 조가 한 번 올라가고(F→G) 큰 마무리"""
+    bpm = 138
+    s = Score(bpm).prog(0, 56, 100, 52, 40).prog(1, 58, 112, 64, 30).prog(2, 9, 96, 80, 40).prog(3, 6, 70, 40, 40) \
+                  .prog(4, 61, 92, 64, 50).prog(5, 60, 86, 70, 50).prog(6, 48, 74, 64, 60).prog(7, 70, 80, 58, 40).prog(9, 0, 100)
+    def march(o, chs, k, kind):
+        for j, ch in enumerate(chs):
+            b0 = o + j * 4; root = (ch[0] - 12 if ch[0] >= 64 else ch[0]) - 12 + k
+            for b in range(4):
+                s.n(1, b0 + b, .45, root if b % 2 == 0 else root + 7, 108)
+                s.n(4, b0 + b + .5, .3, [p + k - 12 for p in ch], 70 if kind == "full" else 60)    # 브라스 뒷박
+                s.n(9, b0 + b, .2, 36 if b % 2 == 0 else 38, 90 if b % 2 == 0 else 80)
+                s.n(9, b0 + b + .5, .1, 38, 46); s.n(9, b0 + b + .75, .1, 38, 38)              # 행진 스네어 잔타
+    def fanfare(o, k, kind):
+        s.seq(0, PARADE_A, 100 if kind != "light" else 88, o, k)
+        s.seq(2, PARADE_A, 90, o + .01, k + 12)
+        if kind == "full": s.seq(3, [(b + .5, .4, p - 5) for b, d, p in PARADE_A if d >= 1], 70, o, k)   # 하프시코드 대답
+        march(o, PARADE_A_CH, k, kind)
+    def trio(o, k):
+        s.seq(5, PARADE_T, 92, o, k - 12); s.seq(6, PARADE_T, 70, o, k)
+        for j, ch in enumerate(PARADE_T_CH): s.n(6, o + j * 4, 4, [p + k - 12 for p in ch], 56)
+        march(o, PARADE_T_CH, k, "mid")
+        return [(o + 3, 1, 89 + k), (o + 4, 3, 88 + k), (o + 19, 1, 91 + k), (o + 20, 4, 89 + k)]
+    def prank(o, k):                                                       # 저승 장난 2마디
+        for i, p in enumerate([53, 54, 55, 56, 57, 58, 59, 60]): s.n(7, o + i * .5, .4, p + k, 84)
+        for b in range(8): s.n(9, o + b, .15, 76 if b % 2 == 0 else 77, 80)
+        s.n(1, o + 7, .9, 36 + k, 110)
+    plan = [("F", 0, "light"), ("F", 0, "full"), ("T", 0, ""), ("P", 0, ""), ("F", 0, "full"),
+            ("T", 2, ""), ("F", 2, "full"), ("P", 2, ""), ("F", 2, "full"), ("T", 2, ""), ("F", 2, "full"), ("T", 2, ""), ("F", 2, "full"), ("F", 2, "full")]
+    o = 0; th = []; prev = 0
+    for sec, k, kind in plan:
+        if k != prev:
+            for t in range(16): s.n(9, o - 2 + t * .125, .1, 38, 50 + t * 4)
+        if sec == "F": fanfare(o, k, kind); s.n(9, o, 2, 49, 100); o += 32
+        elif sec == "T": th += trio(o, k); s.n(9, o, 2, 49, 80); o += 32
+        else: prank(o, k); o += 8
+        prev = k
+    E = o; k = 2
+    for t in range(16): s.n(9, E - 2 + t * .125, .1, 38, 60 + t * 4)
+    s.n(0, E, 4, 84 + k, 118); s.n(2, E, 4, [84 + k, 89 + k, 93 + k], 112); s.n(4, E, 4, [53 + k, 60 + k, 65 + k, 69 + k], 120)
+    s.n(1, E, 4, 29 + k, 122); s.n(6, E, 4, [65 + k, 72 + k, 77 + k], 100); s.n(3, E, 4, [65 + k, 69 + k, 72 + k], 96)
+    s.n(9, E, 4, 49, 127); s.n(9, E, 4, 57, 120); s.n(9, E, .3, 36, 127)
+    th += [(E - 2, 2, 84 + k), (E, 4, 96 + k)]
+    x = s.render(4)
+    tm = theremin(th, bpm, E + 8, level=0.18)
+    return mix(len(x) / SR, [(0, x), (0, tm[:len(x)]), (s.sec(E) + 1.2, coins(10) * 0.6)])
+
 def jingle():
     s = Score(120).prog(0, 6, 100, 50, 60).prog(1, 45, 110, 78, 60).prog(2, 47, 110).prog(3, 8, 80, 64, 70)
     s.seq(0, [(0, .5, 69), (.5, .5, 72), (1, .5, 71), (1.5, .5, 70), (2, .5, 69), (2.5, .5, 68), (3, 1, 64),
@@ -958,10 +1069,12 @@ CUES = [
          note="차임 끝나고 5B 녹음 방송"),
     dict(id="5B", scene="8장", title="녹음 음성 4 · 긴급공지 방송 (큐프4)", timing="5(차임) 끝나면 바로", file="voice4", voice=True,
          note="배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)"),
-    dict(id="6",  scene="9장", title="9장 장면 음악 · 경쾌한 저승 스윙 (약 5분, 반복)", timing="9장 시작: 전원 등장 '조명이 천천히 밝아진다.'", file="10_scene9_loop", gen=lambda: underworld_swing("scene"), mp3=True, loop=True, vol=0.5,
-         note="116bpm 스윙: 저승사자 선율(클라리넷·실로폰, E단조) ↔ 공연 주제(첼레스타, G장조), 하프시코드·드럼 백비트·낮은 오르간·가끔 테레민 · 끝나면 처음부터 반복 · 볼륨 50% · 커튼콜 큐 6B가 2초에 걸쳐 끔"),
-    dict(id="6B", scene="커튼콜", title="커튼콜 · 명랑한 저승 엔딩곡 (약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=cheerful_ending, post="acompressor=threshold=-20dB:ratio=3:attack=10:release=150,loudnorm=I=-18:TP=-1.5:LRA=7", mp3=True, vol=0.5, fadeOthers=2, over=True,
-         note="\"하나, 둘! 감사합니다!!!\" · 스윙 아닌 152bpm 쿵짝 갤럽: 공연 주제를 피콜로·글로켄·트럼펫이 또박또박, 아코디언·튜바·스네어 반주, 중간에 오르간·테레민 '저승 장난' 구간, 조가 두 번 올라가고 큰 화음으로 끝 · 6번이 나오는 중에 GO하면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
+    dict(id="6",  scene="9장", title="9장 장면 음악 · 저승 관청 바운스 (약 5분, 반복)", timing="9장 시작: 전원 등장 '조명이 천천히 밝아진다.'", file="10_scene9_loop", gen=bouncy_bureau, mp3=True, loop=True, vol=0.5,
+         post="acompressor=threshold=-20dB:ratio=2.5:attack=10:release=150,loudnorm=I=-18:TP=-1.5:LRA=7",
+         note="126bpm 곧은 리듬(스윙 아님), D장조 ↔ G장조: 마림바·첼레스타 선율, 피치카토·바순, 하프시코드, 셰이커·가벼운 드럼 · 밝은 오르간·테레민·도장 소리로 저승 색 · 끝나면 처음부터 반복 · 볼륨 50% · 6B가 2초에 걸쳐 끔"),
+    dict(id="6B", scene="커튼콜", title="커튼콜 · 저승 퍼레이드 (약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=underworld_parade, mp3=True, vol=0.5, fadeOthers=2, over=True,
+         post="acompressor=threshold=-20dB:ratio=3:attack=10:release=150,loudnorm=I=-18:TP=-1.5:LRA=7",
+         note="\"하나, 둘! 감사합니다!!!\" · 138bpm 행진(스윙 아님, 6번보다 빠름), F장조 팡파르(트럼펫·글로켄·브라스·튜바·행진 스네어) ↔ 트리오(호른·현 + 테레민), 중간 '저승 장난' 2마디, F→G로 올라가 큰 화음 + 동전 소리로 끝 · 6번이 나오는 중에 GO하면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형
