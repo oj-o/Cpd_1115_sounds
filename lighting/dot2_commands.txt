@@ -457,76 +457,93 @@
  277  Label Cue 21
  278  [이름창] Full 8
 
-# 큐 22 BO Scene9
+# 큐 21.5 Spot Jikryeol
  279  Group 1 At 0
- 280  Group 2 At 0
- 281  Group 3 At 0
+ 280  Group 2 At 10
+ 281  Group 3 At 10
  282  Group 4 At 0
  283  Group 5 At 0
- 284  Group 6 At 0
+ 284  Group 6 At 10
  285  Group 7 At 0
  286  Group 8 At 0
- 287  Store Cue 22 Fade 3
- 288  Label Cue 22
- 289  [이름창] BO Scene9
+ 287  Group 10 At 80
+ 288  Group 6 At Preset 4.4
+ 289  Group 10 At Preset 4.3
+ 290  Group 10 At Preset 2.1
+ 291  Store Cue 21.5 Fade 2
+ 292  Label Cue 21.5
+ 293  [이름창] Spot Jikryeol
+
+# 큐 22 BO Scene9
+ 294  Group 1 At 0
+ 295  Group 2 At 0
+ 296  Group 3 At 0
+ 297  Group 4 At 0
+ 298  Group 5 At 0
+ 299  Group 6 At 0
+ 300  Group 7 At 0
+ 301  Group 8 At 0
+ 302  Store Cue 22 Fade 3
+ 303  Label Cue 22
+ 304  [이름창] BO Scene9
 
 # 큐 23 Full 9
- 290  Group 1 At 0
- 291  Group 2 At 60
- 292  Group 3 At 85
- 293  Group 4 At 70
- 294  Group 5 At 50
- 295  Group 6 At 40
- 296  Group 7 At 0
- 297  Group 8 At 0
- 298  Group 2 At Preset 4.1
- 299  Group 6 At Preset 4.1
- 300  Store Cue 23 Fade 8
- 301  Label Cue 23
- 302  [이름창] Full 9
+ 305  Group 1 At 0
+ 306  Group 2 At 60
+ 307  Group 3 At 85
+ 308  Group 4 At 70
+ 309  Group 5 At 50
+ 310  Group 6 At 40
+ 311  Group 7 At 0
+ 312  Group 8 At 0
+ 313  Group 2 At Preset 4.1
+ 314  Group 6 At Preset 4.1
+ 315  Store Cue 23 Fade 8
+ 316  Label Cue 23
+ 317  [이름창] Full 9
 
 # 큐 24 BO End
- 303  Group 1 At 0
- 304  Group 2 At 0
- 305  Group 3 At 0
- 306  Group 4 At 0
- 307  Group 5 At 0
- 308  Group 6 At 0
- 309  Group 7 At 0
- 310  Group 8 At 0
- 311  Store Cue 24 Fade 1
- 312  Label Cue 24
- 313  [이름창] BO End
+ 318  Group 1 At 0
+ 319  Group 2 At 0
+ 320  Group 3 At 0
+ 321  Group 4 At 0
+ 322  Group 5 At 0
+ 323  Group 6 At 0
+ 324  Group 7 At 0
+ 325  Group 8 At 0
+ 326  Store Cue 24 Fade 1
+ 327  Label Cue 24
+ 328  [이름창] BO End
 
 # 큐 25 Curtain Call
- 314  Group 1 At 100
- 315  Group 2 At 100
- 316  Group 3 At 100
- 317  Group 4 At 100
- 318  Group 5 At 100
- 319  Group 6 At 100
- 320  Group 7 At 0
- 321  Group 8 At 0
- 322  Group 1 At Preset 4.5
- 323  Group 2 At Preset 4.5
- 324  Group 6 At Preset 4.5
- 325  Group 1 At Preset 2.4
- 326  Store Cue 25 Fade 2
- 327  Label Cue 25
- 328  [이름창] Curtain Call
+ 329  Group 1 At 100
+ 330  Group 2 At 100
+ 331  Group 3 At 100
+ 332  Group 4 At 100
+ 333  Group 5 At 100
+ 334  Group 6 At 100
+ 335  Group 7 At 0
+ 336  Group 8 At 0
+ 337  Group 1 At Preset 4.5
+ 338  Group 2 At Preset 4.5
+ 339  Group 6 At Preset 4.5
+ 340  Group 1 At Preset 2.4
+ 341  Store Cue 25 Fade 2
+ 342  Label Cue 25
+ 343  [이름창] Curtain Call
 
 # 큐 26 House In
- 329  Group 1 At 0
- 330  Group 2 At 0
- 331  Group 3 At 0
- 332  Group 4 At 0
- 333  Group 5 At 0
- 334  Group 6 At 0
- 335  Group 7 At 0
- 336  Group 8 At 100
- 337  Store Cue 26 Fade 5
- 338  Label Cue 26
- 339  [이름창] House In
+ 344  Group 1 At 0
+ 345  Group 2 At 0
+ 346  Group 3 At 0
+ 347  Group 4 At 0
+ 348  Group 5 At 0
+ 349  Group 6 At 0
+ 350  Group 7 At 0
+ 351  Group 8 At 100
+ 352  Store Cue 26 Fade 5
+ 353  Label Cue 26
+ 354  [이름창] House In
 
 ########## 프리셋 (2단계 전에 직접 저장) ##########
 Preset 4.1  Office   색: 차가운 화이트 + 연보라 (Wash·BG·Spot)
