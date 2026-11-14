@@ -34,10 +34,10 @@ window.CUES = [
   "timing": "지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)",
   "vol": 0.8,
   "fadeOthers": 1,
-  "note": "벨소리 3번(7초) 후 저절로 끝남 · 음악이 남아 있으면 1초에 걸쳐 꺼짐",
+  "note": "벨소리 2번(5초) 후 저절로 끝남 · 음악이 남아 있으면 1초에 걸쳐 꺼짐",
   "type": "audio",
-  "src": "audio/03_ring3.wav?v=2b844f45",
-  "dur": 7.0
+  "src": "audio/03_ring.wav?v=f5587fd7",
+  "dur": 5.0
  },
  {
   "id": "1B",
@@ -89,8 +89,8 @@ window.CUES = [
   "title": "전화 끊김",
   "timing": "지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)",
   "type": "audio",
-  "src": "audio/04_hangup.mp3?v=5fec10ec",
-  "dur": 2.59
+  "src": "audio/04_hangup.mp3?v=166cb3c4",
+  "dur": 1.94
  },
  {
   "id": "3",
