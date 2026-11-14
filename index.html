@@ -94,6 +94,9 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 .mini{all:unset;cursor:pointer;font-size:12px;padding:3px 8px;white-space:nowrap;flex-shrink:0;border-radius:6px;border:1px solid var(--line)}
 .mini:hover{border-color:var(--muted)}
 .mini.x{color:var(--stop)}
+.ytwrap{margin-top:10px;display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
+.ytwrap iframe{width:192px;height:108px;border-radius:6px;border:1px solid var(--line)}
+a.mini{text-decoration:none;display:inline-block}
 .mini.p{min-width:52px;text-align:center}
 .card.paused{border-color:var(--warn)}
 .card.paused .bar i{background:var(--muted)}
@@ -119,7 +122,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.14p · 전화 소리 2회 · 17큐</span>
+    <span class="status">v2026.11.14q · OP 유튜브 재생·링크 · 17큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -152,12 +155,13 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
       <div class="keys"><kbd>Space</kbd> GO · 소리가 나오는 중엔 일시정지·이어서 · <kbd>Shift</kbd>+<kbd>Space</kbd> 무조건 다음 큐 GO · <kbd>↑</kbd><kbd>↓</kbd> 대기 큐 이동 · <kbd>P</kbd> 일시정지·이어서 · <kbd>F</kbd> 전체 페이드 · <kbd>3</kbd><kbd>5</kbd><kbd>0</kbd> 페이드 3·5·10초 선택 · <kbd>Esc</kbd> 전체 정지 · 큐를 두 번 클릭하면 바로 재생 · 재생 중 막대를 누르거나 끌면 위치 이동</div>
     </section>
     <section class="active" id="active"><p class="empty">재생 중인 큐가 없습니다.</p></section>
+    <div class="ytwrap" id="ytwrap" hidden><div id="ytbox"></div><span>유튜브 재생 중 (인터넷 필요)</span></div>
   </aside>
 </div>
 
 <a class="lightlink" href="lighting/cue_maker.html" title="조명 큐 생성 · 비상 수동 조정 (새 탭)" target="_blank" rel="noopener">💡 조명 큐 생성 →</a>
 
-<script src="cues.js?v=20261114p"></script>
+<script src="cues.js?v=20261114q"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
@@ -172,8 +176,10 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   let ready = 0;
   const updStatus = () => {
     const s = $("status");
-    const userMiss = CUES.filter(c => c.userFile && missing.has(c.src));
-    if (missing.size && userMiss.length === missing.size) { s.textContent = `${userMiss.map(c => c.id).join("·")} 음원 파일을 골라 주세요 (목록의 '음원 파일 선택')`; s.className = "status bad"; }
+    const userMiss = CUES.filter(c => c.userFile && missing.has(c.src) && !(c.youtube && ytOk));
+    const ytOnly = CUES.filter(c => c.userFile && missing.has(c.src) && c.youtube && ytOk).length;
+    if (missing.size && ytOnly === missing.size) { s.textContent = `음원 준비 완료 · OP는 유튜브로 재생 (인터넷 필요)`; s.className = "status"; }
+    else if (missing.size && userMiss.length + ytOnly === missing.size) { s.textContent = `${userMiss.map(c => c.id).join("·")} 음원 파일을 골라 주세요 (목록의 '음원 파일 선택')`; s.className = "status bad"; }
     else if (missing.size) { s.textContent = `음원 ${missing.size}개를 찾을 수 없음 (목록의 ! 표시 확인)`; s.className = "status bad"; }
     else { s.textContent = ready >= srcs.length ? `음원 ${srcs.length}개 준비 완료` : `음원 준비 중 ${ready}/${srcs.length}`; s.className = "status"; }
   };
@@ -211,6 +217,36 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   }
   CUES.filter(c => c.userFile).forEach(c => dbGet("cue:" + c.id).then(v => { if (v && v.blob) usePicked(c, v.blob, v.name); }));
 
+  // ── 유튜브 재생 (youtube 큐: 음원 파일이 없을 때 유튜브 플레이어로 재생, 인터넷 필요) ──
+  let yt = null, ytOk = false;
+  const ytA = {                                   // <audio>처럼 쓰는 유튜브 어댑터 (볼륨·페이드·일시정지·탐색·반복)
+    loop: false, onended: null, _v: 1, _p: true,
+    get volume() { return this._v; }, set volume(x) { this._v = x; if (ytOk) yt.setVolume(Math.round(x * 100)); },
+    get currentTime() { return ytOk ? yt.getCurrentTime() : 0; }, set currentTime(t) { if (ytOk) yt.seekTo(t, true); },
+    get duration() { return ytOk ? yt.getDuration() : 0; },
+    get paused() { return this._p; },
+    play() { this._p = false; $("ytwrap").hidden = false; if (ytOk) yt.playVideo(); return Promise.resolve(); },
+    pause() { this._p = true; if (ytOk) yt.pauseVideo(); },
+  };
+  const ytCue = CUES.find(c => c.youtube);
+  if (ytCue) {
+    window.onYouTubeIframeAPIReady = () => {
+      yt = new YT.Player("ytbox", { width: 192, height: 108, videoId: ytCue.youtube,
+        playerVars: { controls: 0, playsinline: 1, rel: 0, disablekb: 1 },
+        events: {
+          onReady: () => { ytOk = true; yt.setVolume(100); render(); updStatus(); },
+          onError: () => {                         // 퍼가기 금지 영상 등 → 링크로
+            const wasPlaying = [...running.values()].some(r => r.audio === ytA);
+            ytOk = false; [...running.values()].filter(r => r.audio === ytA).forEach(r => kill(r)); render(); updStatus();
+            if (wasPlaying) window.open(`https://www.youtube.com/watch?v=${ytCue.youtube}`, "_blank");
+            $("status").textContent = "이 유튜브 영상은 플레이어 안에서 재생할 수 없어 새 탭으로 엽니다"; $("status").className = "status bad";
+          },
+          onStateChange: e => { if (e.data === 0) { if (ytA.loop) { yt.seekTo(0, true); yt.playVideo(); } else ytA.onended && ytA.onended(); } },
+        } });
+    };
+    const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; s.async = true; document.head.appendChild(s);
+  }
+
   // ── 큐 목록 ──
   const fmt = s => { s = Math.max(0, s || 0); return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`; };
   function render() {
@@ -226,13 +262,16 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
       if (c.loop) tags.push('<span class="tag loop">반복</span>');
       if (c.fadeIn) tags.push(`<span class="tag">F.I ${c.fadeIn}s</span>`);
       if (c.fadeOthers) tags.push(`<span class="tag">이전 F.O ${c.fadeOthers}s</span>`);
-      if (c.src && missing.has(c.src)) tags.push('<span class="tag missing">! 파일 없음</span>');
+      if (c.src && missing.has(c.src) && !(c.youtube && ytOk)) tags.push('<span class="tag missing">! 파일 없음</span>');
+      if (c.youtube && !c._picked) tags.push(`<span class="tag loop">${ytOk ? "유튜브 재생" : "유튜브 연결 안 됨"}</span>`);
       if (c.userFile) tags.push(`<br><button class="mini pick" type="button" data-pick="${i}">${c._picked ? "파일 바꾸기" : "음원 파일 선택"}</button>${c._picked ? `<div class="note">${c._picked}</div>` : ""}`);
+      if (c.youtube) tags.push(`<br><a class="mini" href="https://www.youtube.com/watch?v=${c.youtube}" target="_blank" rel="noopener" data-yt>유튜브에서 열기 ↗</a>`);
       tr.innerHTML = `<td class="id">${c.id}</td><td class="scene">${c.scene || ""}</td>
         <td><div class="ttl">${c.title}</div><div class="timing">${c.timing || ""}</div>${c.note ? `<div class="note">${c.note}</div>` : ""}</td>
         <td class="tags">${c.type === "audio" && c.dur ? (c.dur < 60 ? c.dur.toFixed(1) + "초" : fmt(c.dur)) : ""}<br>${tags.join("")}</td>`;
       const pk = tr.querySelector("[data-pick]");
       if (pk) pk.addEventListener("click", e => { e.stopPropagation(); pickFile(c); });
+      const yl = tr.querySelector("[data-yt]"); if (yl) yl.addEventListener("click", e => e.stopPropagation());
       tr.addEventListener("click", () => setStandby(i));
       tr.addEventListener("dblclick", () => { setStandby(i); go(); });
       tb.appendChild(tr);
@@ -296,6 +335,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   }
   function kill(r) {
     clearInterval(r.fadeTimer); r.audio.pause(); r.audio.currentTime = 0;
+    if (r.audio === ytA) $("ytwrap").hidden = true;
     running.delete(r.uid); r.card.remove(); drawActive(); render(); syncPause();
   }
   function stopAll(sec = 0) { [...running.values()].forEach(r => stopRun(r, sec)); }
@@ -331,7 +371,10 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     if (c.cuts) stopIds(c.cuts, 0);                          // 앞 소리를 바로 끊고 시작 (4A: 벨소리 → 녹음 속 벨소리로 이어짐)
     if (c.type === "stop") { c.targets ? stopIds(c.targets, c.fade || 0) : stopAll(c.fade || 0); return; }
     let a = pool.get(c.src);
-    if (!a || [...running.values()].some(r => r.audio === a)) { a = new Audio(c.src); }
+    if (c.youtube && !c._picked && missing.has(c.src)) {           // 파일 없음 → 유튜브
+      if (!ytOk) { window.open(`https://www.youtube.com/watch?v=${c.youtube}`, "_blank"); $("status").textContent = "유튜브 플레이어에 연결되지 않아 새 탭으로 열었습니다 (그 탭에서 재생·반복 설정)"; $("status").className = "status bad"; return; }
+      a = ytA;
+    } else if (!a || [...running.values()].some(r => r.audio === a)) { a = new Audio(c.src); }
     a.loop = !!c.loop; a.currentTime = 0;
     const r = { uid: ++uid, cue: c, audio: a, base: c.vol ?? 1, gain: c.fadeIn ? 0 : 1 };
     apply(r);

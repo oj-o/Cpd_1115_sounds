@@ -9,7 +9,8 @@ window.CUES = [
   "loop": true,
   "vol": 0.6,
   "userFile": true,
-  "note": "유튜브 곡(youtu.be/_CzSCWpF7TM). audio/00_opening.mp3로 넣거나, 이 줄의 '음원 파일 선택'으로 고르면 이 컴퓨터 브라우저에 저장됨 · 다음 큐 0이 2초에 걸쳐 끔",
+  "youtube": "_CzSCWpF7TM",
+  "note": "음원 파일이 없으면 유튜브 플레이어로 반복 재생(인터넷 필요) · 연결이 안 되면 GO 때 유튜브 새 탭이 열림 · 파일을 고르면 그 파일로 재생 · 다음 큐 0이 2초에 걸쳐 끔",
   "type": "audio",
   "src": "audio/00_opening.mp3",
   "dur": null
