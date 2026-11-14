@@ -746,18 +746,19 @@ def _eerie_lobby(key=0, bpm=76, detune=-650):
     return y
 
 def house_suite():
-    """관객 입장 음악 약 3분 — 처음부터 끝까지 으스스하게
-    음이 나간 로비 왈츠 → 저승 오피스 왈츠(오르골 선율) → 삼도천 지하철(드론·철길)"""
+    """관객 입장 음악 약 5분 — 처음부터 끝까지 으스스하게
+    음이 나간 로비 왈츠 → 저승 오피스 왈츠(오르골 선율) → 삼도천 지하철(드론·철길) → 더 낮고 느린 로비 왈츠"""
     def norm(x, db=-22):
         r = np.sqrt(np.mean(x.astype(np.float64) ** 2)) + 1e-9
         return (x * (10 ** (db / 20) / r)).astype(np.float32)
     lobby = norm(_eerie_lobby(), -22)
-    office = underworld_office(); office = norm(np.vstack([office] * 2), -22)
-    sub = norm(_subway(40), -23)
+    office = underworld_office(); office = norm(np.vstack([office] * 3), -22)
+    sub = norm(_subway(38), -23)
+    deep = norm(_eerie_lobby(key=-2, bpm=70, detune=-900), -23)
     def tail(x, keep=1.2):                                                   # 구간 끝 잔향 꼬리를 잘라 무음 공백 방지
         i = np.where(np.max(np.abs(x), 1) > 10 ** (-45 / 20))[0][-1]
         return x[:min(len(x), i + int(keep * SR))]
-    out = _xfade([tail(lobby), office, tail(sub)], 3.0)
+    out = _xfade([tail(lobby), office, tail(sub), deep], 3.0)
     idx = np.where(np.max(np.abs(out), 1) > 10 ** (-55 / 20))[0]          # 끝 무음 정리 (반복 시 공백 최소화)
     out = out[:idx[-1] + int(1.5 * SR)]
     n = int(3.0 * SR); out[-n:] *= np.linspace(1, 0, n)[:, None]
@@ -767,8 +768,8 @@ def house_suite():
 # type: audio | stop      fadeOthers: GO 시 재생 중인 다른 큐를 몇 초에 걸쳐 페이드아웃
 # 이전 34큐 버전은 git 기록(c0e548c), 16큐 버전은 b1bd4dc에 있습니다.
 CUES = [
-    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 3분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
-         note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철, 끝나면 처음부터 반복. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
+    dict(id="0",  scene="프리쇼", title="관객 입장 · 시작 음악 (으스스, 약 5분)", timing="관객 입장 시간 · 공연 시작 전 F.O", file="00_house_suite", gen=house_suite, loop=True, mp3=True, vol=0.6,
+         note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철 → 더 낮은 로비 왈츠, 끝나면 처음부터 반복. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
     dict(id="1",  scene="1장", title="전화벨 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
          note="음악이 남아 있으면 1초에 걸쳐 꺼짐"),
     dict(id="1B", scene="1장", title="전화벨 정지 (받음)", timing="주인공 \"여보세요?\" 직전", type="stop", fade=0.1, targets=["1"]),
