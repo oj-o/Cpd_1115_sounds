@@ -103,7 +103,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.14 · 시작·엔딩 각 3분 · 10큐</span>
+    <span class="status">v2026.11.14b · 녹음 음성 4개 추가 · 14큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -138,7 +138,7 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
   </aside>
 </div>
 
-<script src="cues.js?v=20261114a"></script>
+<script src="cues.js?v=20261114b"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
@@ -178,7 +178,8 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
       if (c._done) tr.classList.add("done");
       if ([...running.values()].some(r => r.cue === c)) tr.classList.add("playing");
       const tags = [];
-      if (c.type === "stop") tags.push(`<span class="tag stop">정지${c.fade ? " " + c.fade + "s" : ""}</span>`);
+      if (c.type === "stop") tags.push(`<span class="tag stop">${c.targets ? c.targets.join("·") + "번 " : ""}정지${c.fade ? " " + c.fade + "s" : ""}</span>`);
+      if (c.voice) tags.push('<span class="tag">녹음</span>');
       if (c.loop) tags.push('<span class="tag loop">반복</span>');
       if (c.fadeIn) tags.push(`<span class="tag">F.I ${c.fadeIn}s</span>`);
       if (c.fadeOthers) tags.push(`<span class="tag">이전 F.O ${c.fadeOthers}s</span>`);
@@ -223,10 +224,11 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding
     running.delete(r.uid); r.card.remove(); drawActive(); render();
   }
   function stopAll(sec = 0) { [...running.values()].forEach(r => stopRun(r, sec)); }
+  function stopIds(ids, sec = 0) { [...running.values()].filter(r => ids.includes(r.cue.id)).forEach(r => stopRun(r, sec)); }
 
   function play(c) {
     if (c.fadeOthers !== undefined) stopAll(c.fadeOthers);
-    if (c.type === "stop") { stopAll(c.fade || 0); return; }
+    if (c.type === "stop") { c.targets ? stopIds(c.targets, c.fade || 0) : stopAll(c.fade || 0); return; }
     let a = pool.get(c.src);
     if (!a || [...running.values()].some(r => r.audio === a)) { a = new Audio(c.src); }
     a.loop = !!c.loop; a.currentTime = 0;

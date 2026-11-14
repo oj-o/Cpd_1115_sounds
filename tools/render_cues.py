@@ -10,7 +10,7 @@
 필요: python3, numpy, scipy, mido, fluidsynth, ffmpeg, FluidR3_GM.sf2
 실행: python3 tools/render_cues.py   (패키지 폴더에서)
 """
-import os, json, subprocess, tempfile, shutil
+import os, sys, json, subprocess, tempfile, shutil
 import numpy as np
 import mido
 from scipy.io import wavfile
@@ -771,15 +771,23 @@ CUES = [
          note="음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철, 끝나면 처음부터 반복. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔"),
     dict(id="1",  scene="1장", title="전화벨 (수신)", timing="지문 '휴대전화 벨소리.' (\"…'저승관리청' 이었어요!\" 뒤)", file="03_ring", gen=ring, loop=True, vol=0.8, fadeOthers=1,
          note="음악이 남아 있으면 1초에 걸쳐 꺼짐"),
-    dict(id="1B", scene="1장", title="전화벨 정지 (받음)", timing="주인공 \"여보세요?\" 직전", type="stop", fade=0.1),
+    dict(id="1B", scene="1장", title="전화벨 정지 (받음)", timing="주인공 \"여보세요?\" 직전", type="stop", fade=0.1, targets=["1"]),
+    dict(id="1C", scene="1장", title="녹음 음성 1 (큐프1)", timing="1B(전화 받음) 바로 뒤", file="voice1", voice=True,
+         note="배우 녹음 · 한 번 재생 후 자동 종료"),
     dict(id="2",  scene="1장", title="전화 끊김", timing="지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)", file="04_hangup", gen=busy_tone),
     dict(id="3",  scene="2장", title="감사팀장 전화 신호 (발신음)", timing="지문 '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.'", file="05_ringback", gen=ringback, loop=True, vol=0.8),
-    dict(id="3B", scene="2장", title="신호 정지 (연결)", timing="팀장 \"감사팀장님 오랜만이에요.\" 직전", type="stop", fade=0.1),
+    dict(id="3B", scene="2장", title="신호 정지 (연결)", timing="팀장 \"감사팀장님 오랜만이에요.\" 직전", type="stop", fade=0.1, targets=["3"]),
+    dict(id="3C", scene="2장", title="녹음 음성 2 (큐프2)", timing="3B(감사팀장 연결) 바로 뒤", file="voice2", voice=True,
+         note="배우 녹음 · 한 번 재생 후 자동 종료"),
     dict(id="4",  scene="4장", title="벨소리 (인사과 전화)", timing="지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)", file="03_ring", loop=True, vol=1.0),
-    dict(id="4B", scene="4장", title="벨소리 정지 (받음)", timing="\"(전화 받음.) 여보세요?\"", type="stop", fade=0.1,
+    dict(id="4A", scene="4장", title="녹음 음성 3 (큐프3)", timing="4(벨소리)와 4B(받음) 사이", file="voice3", voice=True,
+         note="배우 녹음 · 벨소리 위에 겹쳐 재생됨 · 4B는 벨소리만 끄고 이 녹음은 끝까지 재생"),
+    dict(id="4B", scene="4장", title="벨소리 정지 (받음)", timing="\"(전화 받음.) 여보세요?\"", type="stop", fade=0.1, targets=["4"],
          note="인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"),
     dict(id="5",  scene="8장", title="긴급공지 방송 (차임)", timing="인사담당자 \"(방송) 긴급 공지입니다…\" 직전", file="09_chime", gen=chime,
-         note="차임 끝나고 방송 대사: 무대 뒤 마이크 + 확성기 음색 EQ"),
+         note="차임 끝나고 5B 녹음 방송"),
+    dict(id="5B", scene="8장", title="녹음 음성 4 · 긴급공지 방송 (큐프4)", timing="5(차임) 끝나면 바로", file="voice4", voice=True,
+         note="배우 녹음 · 한 번 재생 후 자동 종료"),
     dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜, 약 3분)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_curtain", gen=curtain_long, mp3=True, fadeOthers=1,
          note="\"하나, 둘! 감사합니다!!!\" · 약 3분, C→D→E로 조가 올라가며 끝에 큰 마무리. 일찍 끝나면 F로 페이드"),
 ]
@@ -799,12 +807,20 @@ def master(x, name):
     g = min(10 ** (LEVEL.get(name, -18) / 20) / rms, 10 ** (-1 / 20) / (np.max(np.abs(x)) + 1e-9))
     return (x * g).astype(np.float32)
 
+def _probe(path):
+    try:
+        out = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path], capture_output=True, text=True).stdout
+        return round(float(out), 2)
+    except Exception:
+        return None
+
 def main():
     assert SF2 and shutil.which('fluidsynth') and shutil.which('ffmpeg'), "fluidsynth / ffmpeg / FluidR3_GM.sf2 필요"
     os.makedirs(OUT, exist_ok=True)
     meta = {}
+    js_only = "--js" in sys.argv          # 음원은 그대로 두고 cues.js만 다시 쓰기
     for c in CUES:
-        if c.get("type") == "stop" or "gen" not in c: continue
+        if js_only or c.get("type") == "stop" or "gen" not in c: continue
         x = master(c["gen"](), c["file"])
         wav = os.path.join(OUT, c["file"] + ".wav")
         wavfile.write(wav, SR, (np.clip(x, -1, 1) * 32767).astype(np.int16))
@@ -819,7 +835,7 @@ def main():
         if c.get("type") != "stop":
             d["type"] = "audio"
             d["src"] = f'audio/{c["file"]}.' + ("wav" if os.path.exists(os.path.join(OUT, c["file"] + ".wav")) else "mp3")
-            d["dur"] = meta.get(c["file"])
+            d["dur"] = meta.get(c["file"]) or _probe(os.path.join(ROOT, d["src"]))
             d.pop("file")
         cues.append(d)
     with open(os.path.join(ROOT, "cues.js"), "w", encoding="utf-8") as f:

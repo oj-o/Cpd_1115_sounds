@@ -11,7 +11,7 @@ window.CUES = [
   "note": "음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철, 끝나면 처음부터 반복. 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔",
   "type": "audio",
   "src": "audio/00_house_suite.mp3",
-  "dur": 184.48
+  "dur": 184.51
  },
  {
   "id": "1",
@@ -32,7 +32,21 @@ window.CUES = [
   "title": "전화벨 정지 (받음)",
   "timing": "주인공 \"여보세요?\" 직전",
   "type": "stop",
-  "fade": 0.1
+  "fade": 0.1,
+  "targets": [
+   "1"
+  ]
+ },
+ {
+  "id": "1C",
+  "scene": "1장",
+  "title": "녹음 음성 1 (큐프1)",
+  "timing": "1B(전화 받음) 바로 뒤",
+  "voice": true,
+  "note": "배우 녹음 · 한 번 재생 후 자동 종료",
+  "type": "audio",
+  "src": "audio/voice1.mp3",
+  "dur": 17.92
  },
  {
   "id": "2",
@@ -41,7 +55,7 @@ window.CUES = [
   "timing": "지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)",
   "type": "audio",
   "src": "audio/04_hangup.mp3",
-  "dur": 2.55
+  "dur": 2.59
  },
  {
   "id": "3",
@@ -60,7 +74,21 @@ window.CUES = [
   "title": "신호 정지 (연결)",
   "timing": "팀장 \"감사팀장님 오랜만이에요.\" 직전",
   "type": "stop",
-  "fade": 0.1
+  "fade": 0.1,
+  "targets": [
+   "3"
+  ]
+ },
+ {
+  "id": "3C",
+  "scene": "2장",
+  "title": "녹음 음성 2 (큐프2)",
+  "timing": "3B(감사팀장 연결) 바로 뒤",
+  "voice": true,
+  "note": "배우 녹음 · 한 번 재생 후 자동 종료",
+  "type": "audio",
+  "src": "audio/voice2.mp3",
+  "dur": 9.74
  },
  {
   "id": "4",
@@ -74,12 +102,26 @@ window.CUES = [
   "dur": 5.0
  },
  {
+  "id": "4A",
+  "scene": "4장",
+  "title": "녹음 음성 3 (큐프3)",
+  "timing": "4(벨소리)와 4B(받음) 사이",
+  "voice": true,
+  "note": "배우 녹음 · 벨소리 위에 겹쳐 재생됨 · 4B는 벨소리만 끄고 이 녹음은 끝까지 재생",
+  "type": "audio",
+  "src": "audio/voice3.mp3",
+  "dur": 25.55
+ },
+ {
   "id": "4B",
   "scene": "4장",
   "title": "벨소리 정지 (받음)",
   "timing": "\"(전화 받음.) 여보세요?\"",
   "type": "stop",
   "fade": 0.1,
+  "targets": [
+   "4"
+  ],
   "note": "인사담당자 (전화) 대사는 무대 뒤 마이크 + 전화 음색 EQ"
  },
  {
@@ -87,10 +129,21 @@ window.CUES = [
   "scene": "8장",
   "title": "긴급공지 방송 (차임)",
   "timing": "인사담당자 \"(방송) 긴급 공지입니다…\" 직전",
-  "note": "차임 끝나고 방송 대사: 무대 뒤 마이크 + 확성기 음색 EQ",
+  "note": "차임 끝나고 5B 녹음 방송",
   "type": "audio",
   "src": "audio/09_chime.mp3",
-  "dur": 3.44
+  "dur": 3.48
+ },
+ {
+  "id": "5B",
+  "scene": "8장",
+  "title": "녹음 음성 4 · 긴급공지 방송 (큐프4)",
+  "timing": "5(차임) 끝나면 바로",
+  "voice": true,
+  "note": "배우 녹음 · 한 번 재생 후 자동 종료",
+  "type": "audio",
+  "src": "audio/voice4.mp3",
+  "dur": 7.63
  },
  {
   "id": "6",
@@ -101,6 +154,6 @@ window.CUES = [
   "note": "\"하나, 둘! 감사합니다!!!\" · 약 3분, C→D→E로 조가 올라가며 끝에 큰 마무리. 일찍 끝나면 F로 페이드",
   "type": "audio",
   "src": "audio/10_curtain.mp3",
-  "dur": 185.13
+  "dur": 185.16
  }
 ];
