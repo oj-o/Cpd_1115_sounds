@@ -823,6 +823,8 @@ CUES = [
          note="배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)"),
     dict(id="6",  scene="엔딩", title="엔딩 · 밝은 음악 (커튼콜, 약 5분, 반복)", timing="지문 '밝은 음악. 모두 관객을 향해 인사한다.'", file="10_ending_loop", gen=curtain_calm, mp3=True, loop=True, vol=0.5, fadeOthers=1,
          note="\"하나, 둘! 감사합니다!!!\" · 커튼콜 주제를 조금 덜 경쾌하게(112bpm, 비브라폰·호른·현) 약 5분, 끝나면 처음부터 반복 · 볼륨 50% · 끝낼 때 F로 페이드"),
+    dict(id="6B", scene="엔딩", title="커튼콜 · 경쾌한 음악 (약 3분)", timing="커튼콜을 더 신나게 할 때 (6번 대신 또는 6번 다음)", file="10_curtain", gen=curtain_long, mp3=True, vol=0.5, fadeOthers=2,
+         note="138bpm 풀 밴드·브라스, C→D→E로 조가 올라가며 끝에 큰 화음 · 6번이 나오는 중에 누르면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%"),
 ]
 
 LEVEL = {  # 목표 RMS(dBFS) — 큐 사이 음량 균형

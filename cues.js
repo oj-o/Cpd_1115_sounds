@@ -185,5 +185,17 @@ window.CUES = [
   "type": "audio",
   "src": "audio/10_ending_loop.mp3?v=e5abb36e",
   "dur": 308.62
+ },
+ {
+  "id": "6B",
+  "scene": "엔딩",
+  "title": "커튼콜 · 경쾌한 음악 (약 3분)",
+  "timing": "커튼콜을 더 신나게 할 때 (6번 대신 또는 6번 다음)",
+  "vol": 0.5,
+  "fadeOthers": 2,
+  "note": "138bpm 풀 밴드·브라스, C→D→E로 조가 올라가며 끝에 큰 화음 · 6번이 나오는 중에 누르면 6번은 2초에 걸쳐 꺼짐 · 볼륨 50%",
+  "type": "audio",
+  "src": "audio/10_curtain.mp3?v=12af55fc",
+  "dur": 185.16
  }
 ];
