@@ -789,7 +789,7 @@ CUES = [
     dict(id="4",  scene="4장", title="벨소리 (인사과 전화, 2번 울리고 끝남)", timing="지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)", file="03_ring", gen=ring, vol=1.0, noFade=True,
          note="4B(받음) 정지 큐를 합침: 2번 울리고 저절로 끝남 · 페이드 없음"),
     dict(id="4A", scene="4장", title="녹음 음성 3 + 통화 종료음 (큐프3)", timing="4(벨소리) 뒤", file="voice3", voice=True, over=True,
-         note="배우 녹음 → 바로 통화 종료음 2번 · 4번 벨소리가 울리는 중에 누르면 겹쳐 재생 · 페이드되지 않음"),
+         note="녹음 대사: 「인사과입니다」 → 「자동 보류됐습니다」 → 「현재까지는 그렇습니다」 → 「주시기 바랍니다」 · 배우 녹음 → 바로 통화 종료음 2번 · 4번 벨소리가 울리는 중에 누르면 겹쳐 재생 · 페이드되지 않음"),
     dict(id="5",  scene="8장", title="긴급공지 방송 (차임)", timing="인사담당자 \"(방송) 긴급 공지입니다…\" 직전", file="09_chime", gen=chime,
          note="차임 끝나고 5B 녹음 방송"),
     dict(id="5B", scene="8장", title="녹음 음성 4 · 긴급공지 방송 (큐프4)", timing="5(차임) 끝나면 바로", file="voice4", voice=True,
