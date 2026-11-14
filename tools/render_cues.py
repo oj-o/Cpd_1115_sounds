@@ -10,7 +10,7 @@
 필요: python3, numpy, scipy, mido, fluidsynth, ffmpeg, FluidR3_GM.sf2
 실행: python3 tools/render_cues.py   (패키지 폴더에서)
 """
-import os, sys, json, subprocess, tempfile, shutil
+import os, sys, hashlib, json, subprocess, tempfile, shutil
 import numpy as np
 import mido
 from scipy.io import wavfile
@@ -841,6 +841,8 @@ def main():
             d["type"] = "audio"
             d["src"] = f'audio/{c["file"]}.' + ("wav" if os.path.exists(os.path.join(OUT, c["file"] + ".wav")) else "mp3")
             d["dur"] = meta.get(c["file"]) or _probe(os.path.join(ROOT, d["src"]))
+            with open(os.path.join(ROOT, d["src"]), "rb") as fh:          # 파일이 바뀌면 주소도 바뀌어 브라우저 캐시를 피함
+                d["src"] += "?v=" + hashlib.md5(fh.read()).hexdigest()[:8]
             d.pop("file")
         cues.append(d)
     with open(os.path.join(ROOT, "cues.js"), "w", encoding="utf-8") as f:

@@ -9,7 +9,7 @@ window.CUES = [
   "vol": 0.6,
   "note": "음이 나간 로비 왈츠 → 저승 오피스 왈츠 → 삼도천 지하철 → 더 낮은 로비 왈츠, 한 번 재생 후 끝남(반복 없음). 공연 시작 전 F(전체 페이드)로 끄거나 1번 벨소리가 1초에 걸쳐 끔",
   "type": "audio",
-  "src": "audio/00_house_suite.mp3",
+  "src": "audio/00_house_suite.mp3?v=8feb51c0",
   "dur": 304.13
  },
  {
@@ -21,7 +21,7 @@ window.CUES = [
   "fadeOthers": 1,
   "note": "벨소리 3번(7초) 후 저절로 끝남 · 음악이 남아 있으면 1초에 걸쳐 꺼짐",
   "type": "audio",
-  "src": "audio/03_ring3.wav",
+  "src": "audio/03_ring3.wav?v=2b844f45",
   "dur": 7.0
  },
  {
@@ -43,7 +43,7 @@ window.CUES = [
   "voice": true,
   "note": "큐프1 새 녹음 원본 0.5–6.5초 구간 · 배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
-  "src": "audio/voice1_1.mp3",
+  "src": "audio/voice1_1.mp3?v=4885fc90",
   "dur": 6.03
  },
  {
@@ -54,7 +54,7 @@ window.CUES = [
   "voice": true,
   "note": "큐프1 새 녹음 원본 6–14.5초 구간 · 배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
-  "src": "audio/voice1_2.mp3",
+  "src": "audio/voice1_2.mp3?v=a0fc3869",
   "dur": 8.54
  },
  {
@@ -65,7 +65,7 @@ window.CUES = [
   "voice": true,
   "note": "큐프1 새 녹음 원본 14.5–22.5초 구간 · 배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
-  "src": "audio/voice1_3.mp3",
+  "src": "audio/voice1_3.mp3?v=394b8d45",
   "dur": 8.05
  },
  {
@@ -74,7 +74,7 @@ window.CUES = [
   "title": "전화 끊김",
   "timing": "지문 '(전화 종료)' (\"열심히 준비 하겠습니다!\" 뒤)",
   "type": "audio",
-  "src": "audio/04_hangup.mp3",
+  "src": "audio/04_hangup.mp3?v=5fec10ec",
   "dur": 2.59
  },
  {
@@ -84,7 +84,7 @@ window.CUES = [
   "timing": "지문 '팀장이 휴대전화를 꺼내 감사팀장에게 전화를 한다.'",
   "vol": 0.8,
   "type": "audio",
-  "src": "audio/05_ringback.wav",
+  "src": "audio/05_ringback.wav?v=a87e77eb",
   "dur": 6.0
  },
  {
@@ -106,7 +106,7 @@ window.CUES = [
   "voice": true,
   "note": "배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
-  "src": "audio/voice2.mp3",
+  "src": "audio/voice2.mp3?v=2231d11e",
   "dur": 9.74
  },
  {
@@ -116,7 +116,7 @@ window.CUES = [
   "timing": "지문 '그때 휴대전화 벨소리.' (\"지금 칭찬하실 때가 아니잖아요!\" 뒤)",
   "vol": 1.0,
   "type": "audio",
-  "src": "audio/03_ring.wav",
+  "src": "audio/03_ring.wav?v=f5587fd7",
   "dur": 5.0
  },
  {
@@ -131,7 +131,7 @@ window.CUES = [
   ],
   "note": "벨소리 2번(5초) → 배우 녹음. 시작할 때 4번 벨소리는 바로 끊기고 녹음 속 벨소리로 이어짐 · 녹음은 페이드되지 않음",
   "type": "audio",
-  "src": "audio/voice3.mp3",
+  "src": "audio/voice3.mp3?v=cada76bb",
   "dur": 30.54
  },
  {
@@ -153,7 +153,7 @@ window.CUES = [
   "timing": "인사담당자 \"(방송) 긴급 공지입니다…\" 직전",
   "note": "차임 끝나고 5B 녹음 방송",
   "type": "audio",
-  "src": "audio/09_chime.mp3",
+  "src": "audio/09_chime.mp3?v=98922fbd",
   "dur": 3.48
  },
  {
@@ -164,7 +164,7 @@ window.CUES = [
   "voice": true,
   "note": "배우 녹음 · 한 번 재생 후 자동 종료 · 페이드되지 않음(F·다른 큐에도 끝까지 재생)",
   "type": "audio",
-  "src": "audio/voice4.mp3",
+  "src": "audio/voice4.mp3?v=4487002f",
   "dur": 7.63
  },
  {
@@ -175,7 +175,7 @@ window.CUES = [
   "fadeOthers": 1,
   "note": "\"하나, 둘! 감사합니다!!!\" · 약 3분, C→D→E로 조가 올라가며 끝에 큰 마무리. 일찍 끝나면 F로 페이드",
   "type": "audio",
-  "src": "audio/10_curtain.mp3",
+  "src": "audio/10_curtain.mp3?v=12af55fc",
   "dur": 185.16
  }
 ];
