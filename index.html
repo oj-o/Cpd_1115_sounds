@@ -124,7 +124,7 @@ a.mini{text-decoration:none;display:inline-block}
 <div class="app">
   <header>
     <h1>저승공무원으로 취업했습니다!!! · 음향 큐</h1>
-    <span class="status">v2026.11.15f · 6 저승 관청 바운스 · 6B 저승 퍼레이드 · 16큐</span>
+    <span class="status">v2026.11.15g · 4A 4분할 · 큐별 mp3 받기 · 18큐</span>
     <span class="status" id="status">음원 확인 중…</span>
     <span class="spacer"></span>
     <label class="mv" for="master">마스터 <input id="master" type="range" min="0" max="100" value="100"> <span id="mvv" class="time">100</span></label>
@@ -164,7 +164,8 @@ a.mini{text-decoration:none;display:inline-block}
 
 <a class="lightlink" href="lighting/cue_maker.html" title="조명 큐 생성 · 비상 수동 조정 (새 탭)" target="_blank" rel="noopener">💡 조명 큐 생성 →</a>
 
-<script src="cues.js?v=20261115f"></script>
+<script src="cues.js?v=20261115g"></script>
+<script src="download/files.js?v=20261115g" onerror="window.DL={}"></script>
 <script>
 (() => {
   const CUES = window.CUES || [];
@@ -268,12 +269,15 @@ a.mini{text-decoration:none;display:inline-block}
       if (c.src && missing.has(c.src) && !(c.youtube && ytOk)) tags.push('<span class="tag missing">! 파일 없음</span>');
       if (c.youtube && !c._picked) tags.push(`<span class="tag loop">${ytOk ? "유튜브 재생" : "유튜브 연결 안 됨"}</span>`);
       if (c.userFile) tags.push(`<br><button class="mini pick" type="button" data-pick="${i}">${c._picked ? "파일 바꾸기" : "음원 파일 선택"}</button>${c._picked ? `<div class="note">${c._picked}</div>` : ""}`);
+      const dlp = (window.DL || {})[c.id];
+      if (dlp) tags.push(`<br><a class="mini" href="${encodeURI(dlp)}" download data-dl>mp3 ↓</a>`);
       if (c.youtube) tags.push(`<br><a class="mini" href="https://www.youtube.com/watch?v=${c.youtube}" target="_blank" rel="noopener" data-yt>유튜브에서 열기 ↗</a>`);
       tr.innerHTML = `<td class="id">${c.id}</td><td class="scene">${c.scene || ""}</td>
         <td><div class="ttl">${c.title}</div><div class="timing">${c.timing || ""}</div>${c.note ? `<div class="note">${c.note}</div>` : ""}${c.lines ? `<div class="lines">${c.lines.map(l => `<div${l.startsWith("⚠") ? ' class="warn"' : ""}>${l}</div>`).join("")}</div>` : ""}</td>
         <td class="tags">${c.type === "audio" && c.dur ? (c.dur < 60 ? c.dur.toFixed(1) + "초" : fmt(c.dur)) : ""}<br>${tags.join("")}</td>`;
       const pk = tr.querySelector("[data-pick]");
       if (pk) pk.addEventListener("click", e => { e.stopPropagation(); pickFile(c); });
+      const dlk = tr.querySelector("[data-dl]"); if (dlk) dlk.addEventListener("click", e => e.stopPropagation());
       const yl = tr.querySelector("[data-yt]"); if (yl) yl.addEventListener("click", e => e.stopPropagation());
       tr.addEventListener("click", () => setStandby(i));
       tr.addEventListener("dblclick", () => { setStandby(i); go(); });
